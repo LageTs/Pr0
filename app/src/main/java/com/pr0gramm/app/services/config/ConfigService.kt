@@ -68,7 +68,6 @@ class ConfigService(context: Application,
 
             config.onFailure { err ->
                 if (err is JsonDataException) {
-                    AndroidUtility.logToCrashlytics(RuntimeException("Parse appConfig failed", err))
                 }
             }
 

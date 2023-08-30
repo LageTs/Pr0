@@ -10,7 +10,6 @@ object Affiliate {
         try {
             ConfigService.get(context).reAffiliate.toRegex()
         } catch (err: Exception) {
-            AndroidUtility.logToCrashlytics(err)
 
             // need to return something
             Config().reAffiliate.toRegex()

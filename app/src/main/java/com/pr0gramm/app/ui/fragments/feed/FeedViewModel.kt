@@ -12,7 +12,6 @@ import com.pr0gramm.app.services.InMemoryCacheService
 import com.pr0gramm.app.services.SeenService
 import com.pr0gramm.app.services.UserService
 import com.pr0gramm.app.services.preloading.PreloadManager
-import com.pr0gramm.app.ui.AdService
 import com.pr0gramm.app.ui.SavedStateAccessor
 import com.pr0gramm.app.ui.fragments.CommentRef
 import com.pr0gramm.app.util.*
@@ -34,7 +33,6 @@ class FeedViewModel(
         private val seenService: SeenService,
         private val inMemoryCacheService: InMemoryCacheService,
         private val preloadManager: PreloadManager,
-        private val adService: AdService,
         private val itemQueries: FeedItemInfoQueries,
 ) : ViewModel() {
 
@@ -52,7 +50,6 @@ class FeedViewModel(
 
     init {
         viewModelScope.launch { observeFeedUpdates() }
-        viewModelScope.launch { observeAdsVisibility() }
         viewModelScope.launch { observeSeenService() }
         viewModelScope.launch { observeSettings() }
         viewModelScope.launch { observePreloadState() }
@@ -88,12 +85,6 @@ class FeedViewModel(
                 val seen = previousState.feed.map { it.id }.filterTo(HashSet()) { id -> seenService.isSeen(id) }
                 previousState.copy(seen = seen)
             }
-        }
-    }
-
-    private suspend fun observeAdsVisibility() {
-        adService.enabledForType(Config.AdType.FEED).collect { areVisible ->
-            feedState.value = feedState.value.copy(adsVisible = areVisible)
         }
     }
 

@@ -13,7 +13,6 @@ inline fun CoroutineWorker.retryOnError(block: () -> ListenableWorker.Result): L
         throw err
 
     } catch (err: Exception) {
-        AndroidUtility.logToCrashlytics(err)
         ListenableWorker.Result.retry()
     }
 }

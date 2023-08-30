@@ -42,7 +42,6 @@ class VoteService(private val api: Api,
      */
     suspend fun vote(item: FeedItem, vote: Vote) {
         logger.info { "Voting feed item ${item.id} $vote" }
-        Track.votePost(vote)
 
         doInBackground { storeVoteValueInTx(CachedVote.Type.ITEM, item.id, vote) }
         api.vote(null, item.id, vote.voteValue)
@@ -50,7 +49,6 @@ class VoteService(private val api: Api,
 
     suspend fun vote(comment: Api.Comment, vote: Vote) {
         logger.info { "Voting comment ${comment.id} $vote" }
-        Track.voteComment(vote)
 
         doInBackground { storeVoteValueInTx(CachedVote.Type.COMMENT, comment.id, vote) }
         api.voteComment(null, comment.id, vote.voteValue)
@@ -58,7 +56,6 @@ class VoteService(private val api: Api,
 
     suspend fun vote(tag: Api.Tag, vote: Vote) {
         logger.info { "Voting tag ${tag.id} $vote" }
-        Track.voteTag(vote)
 
         doInBackground { storeVoteValueInTx(CachedVote.Type.TAG, tag.id, vote) }
         api.voteTag(null, tag.id, vote.voteValue)

@@ -21,9 +21,6 @@ class CustomSwipeRefreshLayout @JvmOverloads constructor(context: Context, attrs
         try {
             super.onLayout(changed, left, top, right, bottom)
         } catch (err: Exception) {
-            // I found crashlytics reports during layout,
-            // lets just catch everything inside this layout.
-            AndroidUtility.logToCrashlytics(err)
         }
     }
 }

@@ -3,6 +3,7 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
@@ -46,7 +47,7 @@
             android:required="false" />
 
         <meta-data
-            android:name="com.google.android.gms.ads.APPLICATION_ID"
+            android:name="pr0gramm"
             android:value="ca-app-pub-2308657767126505~4138045673" />
 
         <!-- activate multi window for samsung -->
@@ -87,12 +88,6 @@
                 android:name="androidx.work.WorkManagerInitializer"
                 tools:node="remove" />
         </provider>
-
-        <!-- disable firebase auto initializer-->
-        <provider
-            android:name="com.google.firebase.provider.FirebaseInitProvider"
-            android:authorities="${applicationId}.firebaseinitprovider"
-            tools:node="remove" />
 
         <activity
             android:name=".ui.MainActivity"

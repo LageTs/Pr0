@@ -45,7 +45,6 @@ import com.pr0gramm.app.ui.dialogs.UpdateDialogFragment
 import com.pr0gramm.app.ui.fragments.CommentRef
 import com.pr0gramm.app.ui.fragments.DrawerFragment
 import com.pr0gramm.app.ui.fragments.favorites.CollectionsFragment
-import com.pr0gramm.app.ui.fragments.feed.AdViewAdapter
 import com.pr0gramm.app.ui.fragments.feed.FeedFragment
 import com.pr0gramm.app.ui.intro.IntroActivity
 import com.pr0gramm.app.util.*
@@ -77,7 +76,6 @@ class MainActivity : BaseAppCompatActivity("MainActivity"),
     private val bookmarkService: BookmarkService by instance()
     private val singleShotService: SingleShotService by instance()
     private val infoMessageService: InfoMessageService by instance()
-    private val adService: AdService by instance()
     private val validationService: ValidationService by instance()
 
     private lateinit var drawerToggle: ActionBarDrawerToggle
@@ -85,8 +83,6 @@ class MainActivity : BaseAppCompatActivity("MainActivity"),
     private var startedWithIntent = false
 
     override var scrollHideToolbarListener: ScrollHideToolbarListener by Delegates.notNull()
-
-    val adViewAdapter = AdViewAdapter()
 
     public override fun onCreate(savedInstanceState: Bundle?) {
         setTheme(ThemeHelper.theme.translucentStatus)
@@ -259,33 +255,6 @@ class MainActivity : BaseAppCompatActivity("MainActivity"),
         return !userService.userIsPremium && singleShotService.firstTimeToday("hint_ads_pr0mium:5")
     }
 
-    private fun showBuyPremiumHint() {
-        launchWhenStarted {
-            val adsEnabledFlow = merge(
-                adService.enabledForType(Config.AdType.FEED).take(1),
-                adService.enabledForType(Config.AdType.FEED_TO_POST_INTERSTITIAL).take(1)
-            )
-
-            val showAnyAds = adsEnabledFlow
-                .onEach { logger.info { "should show ads: $it" } }
-                .firstOrNull { it } ?: false
-
-            if (!userService.userIsPremium && showAnyAds) {
-                Snackbar.make(views.contentContainer, R.string.hint_dont_like_ads, 5_000).apply {
-                    configureNewStyle()
-
-                    setAction("pr0mium") {
-                        Track.registerLinkClicked()
-                        val uri = Uri.parse("https://pr0gramm.com/pr0mium/iap?iap=true")
-                        BrowserHelper.openCustomTab(this@MainActivity, uri)
-                    }
-
-                    show()
-                }
-            }
-        }
-    }
-
     override fun hintBookmarksEditableWithPremium() {
         views.drawerLayout.closeDrawers()
 
@@ -293,7 +262,6 @@ class MainActivity : BaseAppCompatActivity("MainActivity"),
             configureNewStyle()
 
             setAction("pr0mium") {
-                Track.registerLinkClicked()
                 val uri = Uri.parse("https://pr0gramm.com/pr0mium/iap?iap=true")
                 BrowserHelper.openCustomTab(this@MainActivity, uri)
             }
@@ -341,8 +309,6 @@ class MainActivity : BaseAppCompatActivity("MainActivity"),
 
     override fun onDestroy() {
         supportFragmentManager.removeOnBackStackChangedListener(this)
-
-        adViewAdapter.destroy()
 
         try {
             super.onDestroy()
@@ -527,10 +493,6 @@ class MainActivity : BaseAppCompatActivity("MainActivity"),
                 updateCheckDelay = true
             }
 
-            shouldShowBuyPremiumHint() -> {
-                showBuyPremiumHint()
-            }
-
             Build.VERSION.SDK_INT <= configService.config().endOfLifeAndroidVersion && singleShotService.firstTimeToday(
                 "endOfLifeAndroidVersionHint"
             ) -> {
@@ -556,8 +518,6 @@ class MainActivity : BaseAppCompatActivity("MainActivity"),
 
     override fun onLogoutClicked() {
         views.drawerLayout.closeDrawers()
-
-        Track.logout()
 
         launchWhenStarted(busyIndicator = true) {
             userService.logout()
@@ -688,11 +648,6 @@ class MainActivity : BaseAppCompatActivity("MainActivity"),
         try {
             supportFragmentManager.popBackStackImmediate(null, FragmentManager.POP_BACK_STACK_INCLUSIVE)
         } catch (err: Exception) {
-            AndroidUtility.logToCrashlytics(
-                RuntimeException(
-                    "Ignoring exception from popBackStackImmediate:", err
-                )
-            )
         }
     }
 

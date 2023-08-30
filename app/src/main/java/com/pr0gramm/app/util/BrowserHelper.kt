@@ -12,7 +12,6 @@ import com.pr0gramm.app.R
 import com.pr0gramm.app.Settings
 import com.pr0gramm.app.api.pr0gramm.Api
 import com.pr0gramm.app.services.ThemeHelper
-import com.pr0gramm.app.services.Track
 import com.pr0gramm.app.services.UserService
 import com.pr0gramm.app.ui.base.BaseAppCompatActivity
 import com.pr0gramm.app.ui.base.launchWhenStarted
@@ -90,8 +89,6 @@ object BrowserHelper {
             val intent = Intent(Intent.ACTION_VIEW, uri)
             intent.`package` = packageName
             context.startActivity(intent)
-
-            Track.openBrowser("FirefoxFocus")
             return
         }
 
@@ -102,7 +99,6 @@ object BrowserHelper {
                 it.dismiss()
 
                 openCustomTab(context, FIREFOX_URI)
-                Track.gotoFirefoxFocusWebsite()
             }
 
             negative(R.string.cancel) {
@@ -128,7 +124,6 @@ object BrowserHelper {
         // get the chrome package to use
         val packageName = chromeTabPackageName(context)
         if (packageName == null) {
-            Track.openBrowser("External")
             open { context.startActivity(Intent(Intent.ACTION_VIEW, it)) }
             return
         }
@@ -147,7 +142,6 @@ object BrowserHelper {
         customTabsIntent.intent.`package` = packageName
 
         open { customTabsIntent.launchUrl(context, it) }
-        Track.openBrowser("CustomTabs")
     }
 
     private fun runWithHandoverToken(context: Context, uri: Uri, block: (Uri) -> Unit) {

@@ -68,7 +68,6 @@ class FeedFragment : BaseFragment("FeedFragment", R.layout.fragment_feed), Filte
                 seenService = instance(),
                 inMemoryCacheService = instance(),
                 preloadManager = instance(),
-                adService = instance(),
                 itemQueries = instance<AppDB>().feedItemInfoQueries,
         )
     }
@@ -138,7 +137,7 @@ class FeedFragment : BaseFragment("FeedFragment", R.layout.fragment_feed), Filte
 
         val abHeight = AndroidUtility.getActionBarContentOffset(activity)
 
-        feedAdapter = FeedAdapter((activity as MainActivity).adViewAdapter)
+        feedAdapter = FeedAdapter()
 
         if (!feedStateModel.feedState.value.ready) {
             feedAdapter.stateRestorationPolicy = StateRestorationPolicy.PREVENT
@@ -164,8 +163,6 @@ class FeedFragment : BaseFragment("FeedFragment", R.layout.fragment_feed), Filte
         views.recyclerView.layoutManager = InternalGridLayoutManager(activity, spanCount).apply {
             spanSizeLookup = feedAdapter.SpanSizeLookup(spanCount)
         }
-
-        activity.configureRecyclerView("Feed", views.recyclerView)
 
         views.recyclerView.addOnScrollListener(onScrollListener)
 
@@ -502,8 +499,6 @@ class FeedFragment : BaseFragment("FeedFragment", R.layout.fragment_feed), Filte
 
     override fun onResume() {
         super.onResume()
-
-        Track.openFeed(currentFilter)
 
         // check if we should show the pin button or not.
         if (Settings.showPinButton) {
@@ -869,8 +864,6 @@ class FeedFragment : BaseFragment("FeedFragment", R.layout.fragment_feed), Filte
 
         // start preloading now
         PreloadService.preload(activity, feed, allowOnMobile)
-
-        Track.preloadCurrentFeed(feed.size)
 
         singleShotService.doOnce("preload_info_hint") {
             showDialog(this) {

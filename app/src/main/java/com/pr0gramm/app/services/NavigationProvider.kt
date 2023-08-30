@@ -19,7 +19,6 @@ import com.pr0gramm.app.model.user.LoginState
 import com.pr0gramm.app.orm.asFeedFilter
 import com.pr0gramm.app.seconds
 import com.pr0gramm.app.services.config.ConfigService
-import com.pr0gramm.app.ui.AdService
 import com.pr0gramm.app.util.getColorCompat
 import com.squareup.picasso.Picasso
 import kotlinx.coroutines.Dispatchers
@@ -48,7 +47,6 @@ class NavigationProvider(
     private val bookmarkService: BookmarkService,
     private val configService: ConfigService,
     private val singleShotService: SingleShotService,
-    private val adService: AdService,
     private val picasso: Picasso
 ) {
 
@@ -152,9 +150,7 @@ class NavigationProvider(
         items += staticItemFAQ
 
         if (!loginState.authorized || !loginState.premium) {
-            if (adService.isSideloaded()) {
-                items += staticItemPremium
-            }
+            items += staticItemPremium
         }
 
         if (loginState.authorized) {

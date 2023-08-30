@@ -204,8 +204,6 @@ class WriteMessageActivity : BaseAppCompatActivity("WriteMessageActivity") {
                 }
             }
 
-            Track.writeComment(root = parentCommentId == 0L)
-
         } else {
             launchWhenStarted(busyIndicator = true) {
                 withViewDisabled(views.submit) {
@@ -216,8 +214,6 @@ class WriteMessageActivity : BaseAppCompatActivity("WriteMessageActivity") {
                     finishAfterSending()
                 }
             }
-
-            Track.writeMessage()
         }
     }
 

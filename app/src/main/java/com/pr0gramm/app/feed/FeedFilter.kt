@@ -1,7 +1,6 @@
 package com.pr0gramm.app.feed
 
 import android.os.Parcel
-import com.google.android.gms.common.util.Strings.emptyToNull
 import com.pr0gramm.app.parcel.DefaultParcelable
 import com.pr0gramm.app.parcel.SimpleCreator
 import com.pr0gramm.app.parcel.javaClassOf
@@ -118,7 +117,12 @@ class FeedFilter : DefaultParcelable {
     /**
      * Normalizes the given string by trimming it and setting empty strings to null.
      */
-    private fun normalizeString(value: String): String? = emptyToNull(value.trim())
+    private fun normalizeString(value: String): String?
+    {
+        return value.trim().ifEmpty {
+            null;
+        }
+    }
 
     private fun copy(fn: FeedFilter.() -> Unit): FeedFilter {
         val copy = FeedFilter()

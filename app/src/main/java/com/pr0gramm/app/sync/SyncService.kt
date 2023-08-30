@@ -38,7 +38,6 @@ class SyncService(private val userService: UserService,
         Stats().incrementCounter("jobs.sync-stats")
 
         logger.info { "Doing some statistics related trackings" }
-        Track.statistics()
 
         catchAll {
             UpdateChecker().queryAll().let { response ->

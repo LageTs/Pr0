@@ -26,7 +26,6 @@ class BadgeService {
             ShortcutBadger.applyCount(appContext, badgeCount)
 
         } catch (err: Throwable) {
-            AndroidUtility.logToCrashlytics(err)
         }
     }
 }

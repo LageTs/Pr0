@@ -1,15 +1,18 @@
 package com.pr0gramm.app.services
 
+import android.Manifest
 import android.app.Application
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.net.Uri
 import android.os.Build
 import androidx.annotation.RequiresApi
+import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.app.RemoteInput
@@ -100,7 +103,9 @@ class NotificationService(
     ) {
 
         val n = NotificationCompat.Builder(context, type.channel).apply(configure).build()
-        nm.notify(type.channel, id ?: type.id, n)
+        if (ActivityCompat.checkSelfPermission(this.context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+            nm.notify(type.channel, id ?: type.id, n)
+        }
     }
 
     fun showUpdateNotification(update: Update) {
@@ -216,8 +221,6 @@ class NotificationService(
 
             inboxNotificationCache.add(NotificationId(notifyConfig.type.channel, notifyConfig.notificationId))
         }
-
-        Track.inboxNotificationShown()
     }
 
     fun showSendSuccessfulNotification(receiver: String, isMessage: Boolean, notificationId: Int) {

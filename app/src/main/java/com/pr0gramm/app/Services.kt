@@ -53,7 +53,6 @@ import com.pr0gramm.app.services.VoteService
 import com.pr0gramm.app.services.config.ConfigService
 import com.pr0gramm.app.services.preloading.PreloadManager
 import com.pr0gramm.app.sync.SyncService
-import com.pr0gramm.app.ui.AdService
 import com.pr0gramm.app.ui.FancyExifThumbnailGenerator
 import com.pr0gramm.app.ui.TagSuggestionService
 import com.pr0gramm.app.util.*
@@ -202,7 +201,6 @@ fun appInjector(app: Application) = Module.build {
     bind<SyncSiteSettingsService>() with eagerSingleton { SyncSiteSettingsService(instance()) }
 
     bind<AdminService>() with singleton { AdminService(instance(), instance()) }
-    bind<AdService>() with singleton { AdService(instance(), instance(), instance()) }
     bind<ContactService>() with singleton { ContactService(instance()) }
     bind<DownloadService>() with singleton { DownloadService(instance(), instance(), instance()) }
     bind<FeedService>() with singleton { FeedServiceImpl(instance(), instance(), instance()) }

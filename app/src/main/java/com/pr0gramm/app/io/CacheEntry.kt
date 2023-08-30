@@ -7,7 +7,6 @@ import com.pr0gramm.app.BuildConfig
 import com.pr0gramm.app.Instant
 import com.pr0gramm.app.Logger
 import com.pr0gramm.app.util.*
-import com.pr0gramm.app.util.AndroidUtility.logToCrashlytics
 import okhttp3.CacheControl
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -75,15 +74,6 @@ internal class CacheEntry(
             // now try to read the bytes we requested
             fp.seek(pos.toLong())
             val byteCount = read(fp, data, offset, amountToRead)
-
-            // check if we got as many bytes as we wanted to.
-            if (byteCount != amountToRead) {
-                logToCrashlytics(
-                    EOFException(
-                        "Expected to read $amountToRead bytes at $pos, but got only $byteCount. Cache entry: $this"
-                    )
-                )
-            }
 
             return byteCount
         }
@@ -180,8 +170,6 @@ internal class CacheEntry(
             totalSizeValue = resumeCaching()
 
             if (written > totalSizeValue) {
-                // okay, someone fucked up! :/
-                logToCrashlytics(IOException("written=$written greater than totalSize=$totalSizeValue"))
 
                 // invalidate the file and try again.
                 fp.setLength(0)

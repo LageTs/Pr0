@@ -7,7 +7,6 @@
 # -dontnote **
 -ignorewarnings
 
--dontwarn com.google.android.gms.gcm.GcmTaskService
 -dontwarn android.support.transition.Transition
 -dontwarn java.lang.ClassValue
 -dontwarn sun.net.spi.nameservice.NameServiceDescriptor
@@ -59,5 +58,4 @@
 -checkdiscard class kotlinx.coroutines.internal.FastServiceLoader
 -checkdiscard class kotlin.Metadata
 
-## Firebase logging
 -keepnames class * extends java.lang.Exception

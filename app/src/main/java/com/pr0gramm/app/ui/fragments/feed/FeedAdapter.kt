@@ -17,7 +17,6 @@ import androidx.core.view.isVisible
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import com.google.android.gms.ads.admanager.AdManagerAdView
 import com.pr0gramm.app.R
 import com.pr0gramm.app.Settings
 import com.pr0gramm.app.api.pr0gramm.Message
@@ -27,7 +26,6 @@ import com.pr0gramm.app.feed.FeedItem
 import com.pr0gramm.app.services.UriHelper
 import com.pr0gramm.app.services.UserInfo
 import com.pr0gramm.app.ui.*
-import com.pr0gramm.app.ui.fragments.AdViewHolder
 import com.pr0gramm.app.ui.views.*
 import com.pr0gramm.app.util.*
 import com.pr0gramm.app.util.di.injector
@@ -38,13 +36,12 @@ private inline fun idInCategory(cat: Long, idOffset: Long = 0): Long {
     return (idOffset shl 8) or cat
 }
 
-class FeedAdapter(adViewAdapter: AdViewAdapter)
+class FeedAdapter()
     : DelegateAdapter<FeedAdapter.Entry>(ItemCallback()) {
 
     init {
         delegates += FeedItemEntryAdapter
         delegates += CommentEntryAdapter
-        delegates += adViewAdapter
         delegates += UserEntryAdapter
         delegates += UserHintEntryAdapter
         delegates += UserLoadingEntryAdapter
@@ -137,28 +134,6 @@ class FeedAdapter(adViewAdapter: AdViewAdapter)
 }
 
 data class UserAndMark(val name: String, val mark: Int)
-
-
-class AdViewAdapter
-    : ListItemTypeAdapterDelegate<FeedAdapter.Entry.Ad, FeedAdapter.Entry, AdViewHolder>(FeedAdapter.Entry.Ad::class) {
-
-    private var lastSeenAdview: AdManagerAdView? = null
-
-    override fun onCreateViewHolder(parent: ViewGroup): AdViewHolder {
-        val view = AdViewHolder.new(parent.context)
-        lastSeenAdview = view.adView
-        return view
-    }
-
-    override fun onBindViewHolder(holder: AdViewHolder, value: FeedAdapter.Entry.Ad) {
-    }
-
-    fun destroy() {
-        lastSeenAdview?.removeFromParent()
-        lastSeenAdview?.destroy()
-        lastSeenAdview = null
-    }
-}
 
 private object FeedItemEntryAdapter
     : ListItemTypeAdapterDelegate<FeedAdapter.Entry.Item, FeedAdapter.Entry, FeedItemViewHolder>(FeedAdapter.Entry.Item::class) {

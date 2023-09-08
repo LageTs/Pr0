@@ -22,17 +22,12 @@ import androidx.fragment.app.DialogFragment
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentManager
 import com.google.android.material.snackbar.Snackbar
-import com.google.android.ump.ConsentInformation
-import com.google.android.ump.ConsentRequestParameters
-import com.google.android.ump.FormError
-import com.google.android.ump.UserMessagingPlatform
 import com.pr0gramm.app.*
 import com.pr0gramm.app.Duration.Companion.seconds
 import com.pr0gramm.app.api.pr0gramm.MessageType
 import com.pr0gramm.app.databinding.ActivityMainBinding
 import com.pr0gramm.app.feed.FeedFilter
 import com.pr0gramm.app.feed.FeedType
-import com.pr0gramm.app.model.config.Config
 import com.pr0gramm.app.model.info.InfoMessage
 import com.pr0gramm.app.orm.bookmarkOf
 import com.pr0gramm.app.parcel.getParcelableOrNull
@@ -65,7 +60,6 @@ class MainActivity : BaseAppCompatActivity("MainActivity"),
     PermissionHelperActivity,
     RecyclerViewPoolProvider by RecyclerViewPoolMap() {
 
-    private var consentInfo: ConsentInformation? = null
     private val handler = Handler(Looper.getMainLooper())
     private var permissionHelper = PermissionHelperDelegate(this)
 
@@ -170,49 +164,6 @@ class MainActivity : BaseAppCompatActivity("MainActivity"),
             Settings.changes().filter { it === "pref_tag_cloud_view" }.collect {
                 invalidateRecyclerViewPool()
             }
-        }
-
-        askConsent()
-    }
-
-    private fun askConsent() {
-        val params = ConsentRequestParameters.Builder()
-            .setTagForUnderAgeOfConsent(false)
-            .build()
-
-        consentInfo = UserMessagingPlatform.getConsentInformation(this).also { consentInfo ->
-            consentInfo.requestConsentInfoUpdate(
-                this,
-                params,
-                this::onConsentInfoUpdateSuccess,
-                this::onConsentInfoUpdateFailure
-            )
-        }
-
-        // try to initialize mobile adds in parallel, we might already have
-        // consent from a previous form
-        initializeMobileAdsSdk()
-    }
-
-    private fun onConsentInfoUpdateSuccess() {
-        UserMessagingPlatform.loadAndShowConsentFormIfRequired(this) { err ->
-            if (err != null) {
-                logger.warn { "Failed to get consent: $err" }
-                return@loadAndShowConsentFormIfRequired
-            }
-
-            // we have consent, try to initialize mobile sdk
-            initializeMobileAdsSdk()
-        }
-    }
-
-    private fun onConsentInfoUpdateFailure(err: FormError) {
-        logger.warn { "Failed to update consent form: $err" }
-    }
-
-    private fun initializeMobileAdsSdk() {
-        launchWhenCreated {
-            AdService.initializeMobileAds(this@MainActivity)
         }
     }
 

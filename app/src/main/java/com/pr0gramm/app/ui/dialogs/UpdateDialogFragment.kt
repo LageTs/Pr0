@@ -32,8 +32,7 @@ class UpdateDialogFragment : BaseDialogFragment("UpdateDialogFragment") {
     private val singleShotService: SingleShotService by instance()
 
     override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
-        val update = arguments?.getParcelable<Update?>("update")
-        return update?.let { updateAvailableDialog(it) } ?: noNewUpdateDialog()
+        return noNewUpdateDialog()
     }
 
     private fun updateAvailableDialog(update: Update): Dialog {

@@ -43,6 +43,7 @@ import androidx.recyclerview.widget.RecyclerView
 import androidx.work.Constraints
 import androidx.work.WorkRequest
 import com.pr0gramm.app.*
+import com.pr0gramm.app.api.pr0gramm.Api
 import com.pr0gramm.app.delay
 import com.pr0gramm.app.ui.views.CompatibleTextView
 import com.squareup.moshi.adapter
@@ -482,14 +483,11 @@ val Byte.unsigned: Int get() = this.toInt() and 0xff
 
 
 inline fun <reified T : Enum<T>> tryEnumValueOf(key: String?): T? {
-    if (key == null)
+    if (key == null) {
         return null
-
-    return try {
-        enumValueOf<T>(key)
-    } catch (err: IllegalArgumentException) {
-        null
     }
+
+    return enumValues<T>().firstOrNull { v -> v.name.equalsIgnoreCase(key) }
 }
 
 fun <T> threadLocal(supplier: () -> T): ReadOnlyProperty<Any, T> {
@@ -861,3 +859,10 @@ fun FragmentActivity.show(dialog: DialogFragment, tag: String? = null) {
 fun Fragment.show(dialog: DialogFragment, tag: String? = null) {
     dialog.showNow(childFragmentManager, tag)
 }
+
+val Api.Feed.Subtitle.priority
+    get() = when (language) {
+        "de" -> -2
+        "en" -> -1
+        else -> 0
+    }

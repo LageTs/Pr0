@@ -1,7 +1,9 @@
 package com.pr0gramm.app.services
 
 import android.os.Build
-import com.google.android.exoplayer2.mediacodec.MediaCodecUtil
+import androidx.annotation.OptIn
+import androidx.media3.common.util.UnstableApi
+import androidx.media3.exoplayer.mediacodec.MediaCodecUtil
 import com.pr0gramm.app.BuildConfig
 import com.pr0gramm.app.Logger
 import com.pr0gramm.app.Logging
@@ -11,7 +13,7 @@ import com.pr0gramm.app.util.ExceptionHandler
 import java.io.PrintWriter
 import java.io.StringWriter
 import java.lang.reflect.Modifier
-import java.util.*
+import java.util.Locale
 
 /**
  * A simple service that allows sending a message to the pr0gramm support.
@@ -75,9 +77,13 @@ private object DeviceInfoService {
         }
     }
 
+    @OptIn(UnstableApi::class)
     private fun appendCodecInfo(result: StringBuilder) {
-        val decoderInfos = MediaCodecUtil.getDecoderInfos("video/avc", false, false)
-        for (info in decoderInfos) {
+        for (info in MediaCodecUtil.getDecoderInfos("video/avc", false, false)) {
+            result.append("codec: ").append(info.name).append("\n")
+        }
+
+        for (info in MediaCodecUtil.getDecoderInfos("video/vp9", false, false)) {
             result.append("codec: ").append(info.name).append("\n")
         }
     }

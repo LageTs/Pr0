@@ -14,24 +14,28 @@ import com.pr0gramm.app.ui.base.launchIgnoreErrors
 import com.pr0gramm.app.util.CountingInputStream
 import com.pr0gramm.app.util.debugOnly
 import com.pr0gramm.app.util.readStream
-import kotlinx.coroutines.*
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.runInterruptible
+import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.IOException
 import java.text.SimpleDateFormat
-import java.util.*
+import java.util.Locale
 import kotlin.coroutines.coroutineContext
 
 
 /**
  */
 class DownloadService(
-        private val context: Application,
-        private val notificationService: NotificationService,
-        private val cache: Cache) {
+    private val context: Application,
+    private val notificationService: NotificationService,
+    private val cache: Cache
+) {
 
     /**
      * Enqueues an object for download. If an error occurs this method returns
@@ -40,12 +44,12 @@ class DownloadService(
     suspend fun downloadWithNotification(feedItem: FeedItem, preview: Bitmap?) {
         withContext(Dispatchers.IO + NonCancellable) {
             // download over proxy to use caching
-            val uri = UriHelper.of(context).media(feedItem, true)
+            val uri = UriHelper.NoPreload.mediaCompatible(feedItem, highQuality = true)
 
             val name = filenameOf(feedItem)
 
             val targetFile = Storage.create(context, name)
-                    ?: throw CouldNotCreateDownloadDirectoryException()
+                ?: throw CouldNotCreateDownloadDirectoryException()
 
             try {
                 downloadToFile(uri, targetFile).collect { status ->
@@ -146,11 +150,12 @@ class DownloadService(
 
         fun filenameOf(feedItem: FeedItem): String {
             val format = SimpleDateFormat("yyyyMMdd-HHmmss", Locale.getDefault())
-            val fileType = feedItem.image.takeLastWhile { it != '.' }.lowercase(Locale.ROOT)
+            val fileType = feedItem.path.takeLastWhile { it != '.' }.lowercase(Locale.ROOT)
             val prefix = listOf(
-                    feedItem.created.toString(format),
-                    feedItem.user,
-                    "id" + feedItem.id).joinToString("-")
+                feedItem.created.toString(format),
+                feedItem.user,
+                "id" + feedItem.id
+            ).joinToString("-")
 
             return prefix.replace("[^A-Za-z0-9_-]+".toRegex(), "") + "." + fileType
         }

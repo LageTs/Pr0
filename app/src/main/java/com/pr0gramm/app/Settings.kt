@@ -10,6 +10,7 @@ import androidx.preference.PreferenceManager
 import com.pr0gramm.app.feed.ContentType
 import com.pr0gramm.app.services.ShareService
 import com.pr0gramm.app.ui.Themes
+import com.pr0gramm.app.util.VideoQuality
 import com.pr0gramm.app.util.getEnumValue
 import com.pr0gramm.app.util.getStringOrNull
 import com.pr0gramm.app.util.tryEnumValueOf
@@ -68,8 +69,9 @@ object Settings : SharedPreferences.OnSharedPreferenceChangeListener {
     val highlightItemsInFeed: Boolean
         get() = preferences.getBoolean("pref_highlight_items_in_feed", true)
 
-    val markItemsAsSeen: Boolean
+    var markItemsAsSeen: Boolean
         get() = preferences.getBoolean("pref_mark_items_as_seen", false)
+        set(value) = edit { putBoolean("pref_mark_items_as_seen", value) }
 
     val fancyScrollVertical: Boolean
         get() = preferences.getBoolean("pref_fancy_scroll_vertical", true)
@@ -166,8 +168,9 @@ object Settings : SharedPreferences.OnSharedPreferenceChangeListener {
     val secureApp: Boolean
         get() = preferences.getBoolean("pref_secure_app", false)
 
-    val backup: Boolean
+    var backup: Boolean
         get() = preferences.getBoolean("pref_sync_backup", true)
+        set(value) = edit { putBoolean("pref_sync_backup", value) }
 
     val singleTapAction: TapAction
         get() = preferences.getEnumValue("pref_single_tap_action", TapAction.NONE)
@@ -181,6 +184,9 @@ object Settings : SharedPreferences.OnSharedPreferenceChangeListener {
             val value = tryEnumValueOf<ShareService.ImageSearchEngine>(pref.lowercase())
             return value ?: ShareService.ImageSearchEngine.IMGOPS
         }
+
+    val videoQuality: VideoQuality
+        get() = preferences.getEnumValue("pref_video_quality_list", VideoQuality.Adaptive)
 
     val privateInput: Boolean
         get() = preferences.getBoolean("pref_private_input", false)
@@ -259,9 +265,11 @@ object Settings : SharedPreferences.OnSharedPreferenceChangeListener {
         preferences.registerOnSharedPreferenceChangeListener(this)
     }
 
-    override fun onSharedPreferenceChanged(sharedPreferences: SharedPreferences, key: String) {
-        Logger("Settings").debug { "Key was updated: $key" }
-        preferenceChanged.tryEmit(key)
+    override fun onSharedPreferenceChanged(sharedPreferences: SharedPreferences?, key: String?) {
+        if (key != null) {
+            Logger("Settings").debug { "Key was updated: $key" }
+            preferenceChanged.tryEmit(key)
+        }
     }
 }
 

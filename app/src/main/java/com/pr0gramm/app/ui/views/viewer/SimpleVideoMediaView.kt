@@ -3,6 +3,7 @@ package com.pr0gramm.app.ui.views.viewer
 import android.animation.ObjectAnimator
 import android.animation.PropertyValuesHolder
 import android.annotation.SuppressLint
+import android.content.SharedPreferences
 import android.os.Build
 import android.view.LayoutInflater
 import android.view.MotionEvent
@@ -12,29 +13,50 @@ import android.view.animation.AccelerateDecelerateInterpolator
 import android.view.animation.AccelerateInterpolator
 import android.view.animation.DecelerateInterpolator
 import android.widget.ImageView
+import androidx.annotation.OptIn
 import androidx.core.animation.doOnEnd
+import androidx.core.content.edit
 import androidx.core.view.isVisible
-import com.google.android.exoplayer2.MediaItem
-import com.google.android.exoplayer2.Player
-import com.google.android.exoplayer2.SimpleExoPlayer
-import com.google.android.exoplayer2.extractor.ExtractorsFactory
-import com.google.android.exoplayer2.extractor.mkv.MatroskaExtractor
-import com.google.android.exoplayer2.extractor.mp4.FragmentedMp4Extractor
-import com.google.android.exoplayer2.extractor.mp4.Mp4Extractor
-import com.google.android.exoplayer2.source.ProgressiveMediaSource
-import com.google.android.exoplayer2.upstream.DataSource
-import com.google.android.exoplayer2.video.VideoSize
+import androidx.media3.common.C
+import androidx.media3.common.Format
+import androidx.media3.common.MediaItem
+import androidx.media3.common.MediaItem.SubtitleConfiguration
+import androidx.media3.common.MimeTypes
+import androidx.media3.common.Player
+import androidx.media3.common.VideoSize
+import androidx.media3.common.text.CueGroup
+import androidx.media3.common.util.UnstableApi
+import androidx.media3.datasource.DataSource
+import androidx.media3.datasource.DefaultHttpDataSource
+import androidx.media3.datasource.FileDataSource
+import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.exoplayer.source.MediaSource
+import androidx.media3.exoplayer.source.MergingMediaSource
+import androidx.media3.exoplayer.source.ProgressiveMediaSource
+import androidx.media3.exoplayer.source.SingleSampleMediaSource
+import androidx.media3.extractor.ExtractorsFactory
+import androidx.media3.extractor.mkv.MatroskaExtractor
+import androidx.media3.extractor.mp4.FragmentedMp4Extractor
+import androidx.media3.extractor.mp4.Mp4Extractor
+import androidx.media3.extractor.text.SubtitleExtractor
+import androidx.media3.extractor.text.webvtt.WebvttParser
 import com.pr0gramm.app.Duration
 import com.pr0gramm.app.Logger
 import com.pr0gramm.app.R
+import com.pr0gramm.app.api.pr0gramm.Api
+import com.pr0gramm.app.databinding.PlayerSubtitleContainerBinding
+import com.pr0gramm.app.databinding.SubtitleBinding
 import com.pr0gramm.app.io.Cache
-import com.pr0gramm.app.services.ThemeHelper
+import com.pr0gramm.app.services.UriHelper
+import com.pr0gramm.app.ui.views.instance
 import com.pr0gramm.app.ui.views.viewer.video.InputStreamCacheDataSource
-import com.pr0gramm.app.util.AndroidUtility
 import com.pr0gramm.app.util.addOnAttachListener
 import com.pr0gramm.app.util.addOnDetachListener
 import com.pr0gramm.app.util.di.injector
 import com.pr0gramm.app.util.find
+import com.pr0gramm.app.util.isLocalFile
+import com.pr0gramm.app.util.layoutInflater
+import com.pr0gramm.app.util.priority
 
 
 @SuppressLint("ViewConstructor")
@@ -43,13 +65,19 @@ class SimpleVideoMediaView(config: Config) : AbstractProgressMediaView(config, R
 
     private val volumeController: VolumeController?
 
+    private val preferences: SharedPreferences by instance()
+
     // the current player.
     // Will be released on detach and re-created on attach.
-    private var exo: SimpleExoPlayer? = null
+    private var exo: ExoPlayer? = null
 
     private val controlsView = LayoutInflater
-            .from(context)
-            .inflate(R.layout.player_video_controls, this, false) as ViewGroup
+        .from(context)
+        .inflate(R.layout.player_video_controls, this, false) as ViewGroup
+
+    private val subtitleContainer: ViewGroup = PlayerSubtitleContainerBinding
+        .inflate(layoutInflater, this, false)
+        .root
 
     init {
         if (config.audio) {
@@ -65,7 +93,18 @@ class SimpleVideoMediaView(config: Config) : AbstractProgressMediaView(config, R
             volumeController = null
         }
 
+        if (config.subtitles.isNotEmpty()) {
+            val subtitlesView: ImageView = controlsView.find(R.id.subtitles)
+            subtitlesView.isVisible = true
+            subtitlesView.setOnClickListener { toggleSubtitles(subtitlesView) }
+
+            if (preferences.getBoolean("subtitles", false)) {
+                toggleSubtitles(subtitlesView, forceOn = true)
+            }
+        }
+
         publishControllerView(controlsView)
+        publishControllerView(subtitleContainer)
 
         if (Build.VERSION.SDK_INT != Build.VERSION_CODES.M) {
             addOnAttachListener {
@@ -96,6 +135,18 @@ class SimpleVideoMediaView(config: Config) : AbstractProgressMediaView(config, R
         }
     }
 
+    private fun toggleSubtitles(toggleView: ImageView, forceOn: Boolean = false) {
+        if (forceOn || !subtitleContainer.isVisible) {
+            subtitleContainer.isVisible = true
+            toggleView.setImageResource(R.drawable.ic_subtitles_on)
+            preferences.edit { putBoolean("subtitles", true) }
+        } else {
+            subtitleContainer.isVisible = false
+            toggleView.setImageResource(R.drawable.ic_subtitles_off)
+            preferences.edit { putBoolean("subtitles", false) }
+        }
+    }
+
     private fun updatePauseViewIcon() {
         val exo = this.exo ?: return
 
@@ -103,8 +154,7 @@ class SimpleVideoMediaView(config: Config) : AbstractProgressMediaView(config, R
 
         val pauseView = controlsView.find<ImageView>(R.id.pause)
         if (!exo.playWhenReady) {
-            val dr = AndroidUtility.getTintedDrawable(context, R.drawable.ic_video_play, ThemeHelper.accentColor)
-            pauseView.setImageDrawable(dr)
+            pauseView.setImageResource(icon)
         } else {
             pauseView.setImageResource(icon)
         }
@@ -115,10 +165,13 @@ class SimpleVideoMediaView(config: Config) : AbstractProgressMediaView(config, R
         val position = exo?.currentPosition?.takeIf { it >= 0 } ?: return null
         val buffered = exo?.contentBufferedPosition?.takeIf { it >= 0 } ?: return null
 
-        return ProgressInfo(position.toFloat() / duration, buffered.toFloat() / duration,
-                duration = Duration.millis(duration))
+        return ProgressInfo(
+            position.toFloat() / duration, buffered.toFloat() / duration,
+            duration = Duration.millis(duration)
+        )
     }
 
+    @OptIn(UnstableApi::class)
     private fun play() {
         logger.info { "$effectiveUri, ${exo == null}, $isPlaying" }
         if (exo != null || !isPlaying) {
@@ -130,22 +183,44 @@ class SimpleVideoMediaView(config: Config) : AbstractProgressMediaView(config, R
         logger.info { "Starting exo for $effectiveUri" }
 
 
-        val dataSourceFactory = DataSource.Factory {
-            val cache = context.injector.instance<Cache>()
-            InputStreamCacheDataSource(cache)
-        }
+        var mediaSource: MediaSource = run {
+            val dataSourceFactory = when {
+                effectiveUri.isLocalFile -> FileDataSource.Factory()
+                else -> DataSource.Factory {
+                    val cache = context.injector.instance<Cache>()
+                    InputStreamCacheDataSource(cache)
+                }
+            }
 
-        val extractorsFactory = ExtractorsFactory {
-            arrayOf(FragmentedMp4Extractor(), Mp4Extractor(), MatroskaExtractor())
-        }
+            val extractorsFactory = ExtractorsFactory {
+                val format = Format.Builder().build()
+                val subtitleExtractor = SubtitleExtractor(WebvttParser(), format)
+                arrayOf(FragmentedMp4Extractor(), Mp4Extractor(), MatroskaExtractor(), subtitleExtractor)
+            }
 
-        val mediaItem = MediaItem.Builder()
+            val mediaItem = MediaItem.Builder()
                 .setUri(effectiveUri)
+
+            ProgressiveMediaSource
+                .Factory(dataSourceFactory, extractorsFactory)
+                .createMediaSource(mediaItem.build())
+        }
+
+        val subtitle = config.subtitles.sortedBy(Api.Feed.Subtitle::priority).firstOrNull()
+        if (subtitle != null) {
+            logger.info { "Initialize subtitle from ${subtitle.path}" }
+            val subtitleConfig = SubtitleConfiguration.Builder(UriHelper.NoPreload.subtitle(subtitle.path))
+                .setLanguage(subtitle.language)
+                .setMimeType(MimeTypes.TEXT_VTT)
+                .setSelectionFlags(C.SELECTION_FLAG_DEFAULT)
+                .setRoleFlags(C.ROLE_FLAG_SUBTITLE)
                 .build()
 
-        val mediaSource = ProgressiveMediaSource
-                .Factory(dataSourceFactory, extractorsFactory)
-                .createMediaSource(mediaItem)
+            val subtitleSource = SingleSampleMediaSource.Factory(DefaultHttpDataSource.Factory())
+                .createMediaSource(subtitleConfig, 0)
+
+            mediaSource = MergingMediaSource(mediaSource, subtitleSource)
+        }
 
         exo = ExoPlayerRecycler.get(context).apply {
             setVideoTextureView(find(R.id.texture_view))
@@ -229,21 +304,21 @@ class SimpleVideoMediaView(config: Config) : AbstractProgressMediaView(config, R
 
         if (show) {
             controlsView.animate()
-                    .alpha(0f)
-                    .translationY(controlsView.height.toFloat())
-                    .withEndAction { controlsView.isVisible = false }
-                    .setInterpolator(AccelerateInterpolator())
-                    .start()
+                .alpha(0f)
+                .translationY(controlsView.height.toFloat())
+                .withEndAction { controlsView.isVisible = false }
+                .setInterpolator(AccelerateInterpolator())
+                .start()
 
         } else {
             controlsView.alpha = 0f
             controlsView.visibility = View.VISIBLE
             controlsView.animate()
-                    .alpha(0.5f)
-                    .translationY(0f)
-                    .setListener(null)
-                    .setInterpolator(DecelerateInterpolator())
-                    .start()
+                .alpha(0.5f)
+                .translationY(0f)
+                .setListener(null)
+                .setInterpolator(DecelerateInterpolator())
+                .start()
         }
     }
 
@@ -274,9 +349,11 @@ class SimpleVideoMediaView(config: Config) : AbstractProgressMediaView(config, R
         imageView.isVisible = true
 
         val xTrans = imageView.width * 0.25f * direction
-        ObjectAnimator.ofPropertyValuesHolder(imageView,
-                PropertyValuesHolder.ofFloat(View.ALPHA, 0f, 0.7f, 0f),
-                PropertyValuesHolder.ofFloat(View.TRANSLATION_X, -xTrans, xTrans)).apply {
+        ObjectAnimator.ofPropertyValuesHolder(
+            imageView,
+            PropertyValuesHolder.ofFloat(View.ALPHA, 0f, 0.7f, 0f),
+            PropertyValuesHolder.ofFloat(View.TRANSLATION_X, -xTrans, xTrans)
+        ).apply {
 
             duration = 300
             interpolator = AccelerateDecelerateInterpolator()
@@ -287,6 +364,7 @@ class SimpleVideoMediaView(config: Config) : AbstractProgressMediaView(config, R
         }
     }
 
+    @OptIn(UnstableApi::class)
     private val playerListener = object : Player.Listener {
         override fun onPlayerStateChanged(playWhenReady: Boolean, playbackState: Int) {
             showBusyIndicator(playbackState == Player.STATE_IDLE || playbackState == Player.STATE_BUFFERING)
@@ -308,6 +386,20 @@ class SimpleVideoMediaView(config: Config) : AbstractProgressMediaView(config, R
             if (isPlaying) {
                 updateTimeline()
                 onMediaShown()
+            }
+        }
+
+        override fun onCues(cueGroup: CueGroup) {
+            subtitleContainer.removeAllViews()
+
+            for (cue in cueGroup.cues) {
+                val text = cue.text ?: continue
+
+                val textView = SubtitleBinding
+                    .inflate(layoutInflater, subtitleContainer, true)
+                    .root
+
+                textView.text = text
             }
         }
     }

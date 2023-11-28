@@ -6,27 +6,39 @@ import com.pr0gramm.app.Logger
 import com.pr0gramm.app.Stopwatch
 import com.pr0gramm.app.api.pr0gramm.Api
 import com.pr0gramm.app.listOfSize
-import com.pr0gramm.app.parcel.*
+import com.pr0gramm.app.parcel.DefaultParcelable
+import com.pr0gramm.app.parcel.SimpleCreator
+import com.pr0gramm.app.parcel.javaClassOf
+import com.pr0gramm.app.parcel.read
+import com.pr0gramm.app.parcel.readBooleanCompat
+import com.pr0gramm.app.parcel.readValues
+import com.pr0gramm.app.parcel.write
+import com.pr0gramm.app.parcel.writeBooleanCompat
+import com.pr0gramm.app.parcel.writeValues
 import com.pr0gramm.app.util.Serde
 import java.util.zip.Deflater
 
 /**
  * Represents a feed.
  */
-data class Feed(val filter: FeedFilter = FeedFilter(),
-                val contentType: Set<ContentType> = setOf(ContentType.SFW),
-                val items: List<FeedItem> = listOf(),
-                val isAtEnd: Boolean = false,
-                val isAtStart: Boolean = false,
-                val created: Instant = Instant.now()) : List<FeedItem> by items {
+data class Feed(
+    val filter: FeedFilter = FeedFilter(),
+    val contentType: Set<ContentType> = setOf(ContentType.SFW),
+    val items: List<FeedItem> = listOf(),
+    val isAtEnd: Boolean = false,
+    val isAtStart: Boolean = false,
+    val created: Instant = Instant.now()
+) : List<FeedItem> by items {
 
 
     private val itemComparator = compareByDescending(this::feedTypeId)
 
     val feedType: FeedType get() = filter.feedType
 
-    val oldestNonPlaceholderItem: FeedItem? get() = items.asSequence().filterNot { item -> item.placeholder }.maxWithOrNull(itemComparator)
-    val newestNonPlaceholderItem: FeedItem? get() = items.asSequence().filterNot { item -> item.placeholder }.minWithOrNull(itemComparator)
+    val oldestNonPlaceholderItem: FeedItem?
+        get() = items.asSequence().filterNot { item -> item.placeholder }.maxWithOrNull(itemComparator)
+    val newestNonPlaceholderItem: FeedItem?
+        get() = items.asSequence().filterNot { item -> item.placeholder }.minWithOrNull(itemComparator)
 
     /**
      * Merges this feed with the provided low level feed representation
@@ -159,11 +171,11 @@ data class Feed(val filter: FeedFilter = FeedFilter(),
 
             override fun createFromParcel(source: Parcel): FeedParcel = with(source) {
                 val base = Feed(
-                        filter = read(FeedFilter),
-                        contentType = ContentType.decompose(readInt()),
-                        isAtStart = readBooleanCompat(),
-                        created = read(Instant),
-                        items = listOf(),
+                    filter = read(FeedFilter),
+                    contentType = ContentType.decompose(readInt()),
+                    isAtStart = readBooleanCompat(),
+                    created = read(Instant),
+                    items = listOf(),
                 )
 
                 // read the actual items that are parceled
@@ -174,9 +186,9 @@ data class Feed(val filter: FeedFilter = FeedFilter(),
                 val placeholders = Serde.deserialize(createByteArray()!!) { input ->
                     listOfSize(input.readInt()) {
                         SerializedItem(
-                                id = input.readInt().toLong(),
-                                promotedId = input.readInt().toLong(),
-                                aspect = input.readUnsignedShort(),
+                            id = input.readInt().toLong(),
+                            promotedId = input.readInt().toLong(),
+                            aspect = input.readUnsignedShort(),
                         )
                     }
                 }
@@ -184,23 +196,25 @@ data class Feed(val filter: FeedFilter = FeedFilter(),
                 // merge items with itemIds and create placeholders if required
                 val items = placeholders.map { item ->
                     realItemsById[item.id] ?: FeedItem(
-                            id = item.id,
-                            promotedId = item.promotedId,
-                            created = Instant.now(),
-                            thumbnail = "",
-                            image = "",
-                            fullsize = "",
-                            user = "",
-                            userId = 0L,
-                            width = item.width,
-                            height = item.height,
-                            up = 0,
-                            down = 0,
-                            mark = 0,
-                            flags = 0,
-                            audio = false,
-                            deleted = false,
-                            placeholder = true,
+                        id = item.id,
+                        promotedId = item.promotedId,
+                        created = Instant.now(),
+                        thumbnail = "",
+                        path = "",
+                        fullsize = "",
+                        user = "",
+                        userId = 0L,
+                        width = item.width,
+                        height = item.height,
+                        up = 0,
+                        down = 0,
+                        mark = 0,
+                        flags = 0,
+                        audio = false,
+                        deleted = false,
+                        variants = listOf(),
+                        subtitles = listOf(),
+                        placeholder = true,
                     )
                 }
 

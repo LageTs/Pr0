@@ -3,21 +3,46 @@ package com.pr0gramm.app.ui.fragments.feed
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.pr0gramm.app.*
+import com.pr0gramm.app.Instant
+import com.pr0gramm.app.Logger
+import com.pr0gramm.app.R
+import com.pr0gramm.app.Settings
+import com.pr0gramm.app.api.pr0gramm.Api
 import com.pr0gramm.app.db.CachedItemInfo
+import com.pr0gramm.app.db.CachedMediaVariant
+import com.pr0gramm.app.db.CachedSubtitle
 import com.pr0gramm.app.db.FeedItemInfoQueries
-import com.pr0gramm.app.feed.*
+import com.pr0gramm.app.feed.ContentType
+import com.pr0gramm.app.feed.Feed
+import com.pr0gramm.app.feed.FeedException
+import com.pr0gramm.app.feed.FeedFilter
+import com.pr0gramm.app.feed.FeedItem
+import com.pr0gramm.app.feed.FeedManager
+import com.pr0gramm.app.feed.FeedService
+import com.pr0gramm.app.feed.FeedType
+import com.pr0gramm.app.feed.Tags
 import com.pr0gramm.app.model.config.Config
 import com.pr0gramm.app.services.InMemoryCacheService
 import com.pr0gramm.app.services.SeenService
 import com.pr0gramm.app.services.UserService
 import com.pr0gramm.app.services.preloading.PreloadManager
+import com.pr0gramm.app.time
 import com.pr0gramm.app.ui.SavedStateAccessor
 import com.pr0gramm.app.ui.fragments.CommentRef
-import com.pr0gramm.app.util.*
+import com.pr0gramm.app.util.LazyStateFlow
+import com.pr0gramm.app.util.LongSparseArray
+import com.pr0gramm.app.util.StringException
+import com.pr0gramm.app.util.observeChangeEx
+import com.pr0gramm.app.util.rootCause
+import com.pr0gramm.app.util.trace
 import com.squareup.moshi.JsonEncodingException
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.emptyFlow
+import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.flow.flatMapConcat
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.sample
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runInterruptible
 import kotlinx.coroutines.withContext
@@ -25,8 +50,8 @@ import java.net.ConnectException
 import kotlin.math.abs
 
 class FeedViewModel(
-        private val savedState: SavedState,
-        filter: FeedFilter, loadAroundItemId: Long?,
+    private val savedState: SavedState,
+    filter: FeedFilter, loadAroundItemId: Long?,
 
         private val feedService: FeedService,
         private val userService: UserService,
@@ -38,13 +63,15 @@ class FeedViewModel(
 
     private val logger = Logger("FeedViewModel")
 
-    val feedState = MutableStateFlow(FeedState(
+    val feedState = MutableStateFlow(
+        FeedState(
             ready = savedState.feed == null,
 
             // correctly initialize the state
             feed = savedState.feed?.feed ?: Feed(filter, userService.selectedContentType),
             highlightedItemIds = savedState.highlightedItemIds?.toSet() ?: setOf(),
-    ))
+        )
+    )
 
     private val loader = FeedManager(viewModelScope, feedService, feedState.value.feed)
 
@@ -108,7 +135,13 @@ class FeedViewModel(
                     if (lastLoadingSpace == FeedManager.LoadingSpace.PREV) {
                         val firstOldItem = currentState.feed.firstOrNull()
                         if (firstOldItem != null) {
-                            autoScrollRef = ConsumableValue(ScrollRef(CommentRef(firstOldItem), keepScroll = true, smoothScroll = false))
+                            autoScrollRef = ConsumableValue(
+                                ScrollRef(
+                                    CommentRef(firstOldItem),
+                                    keepScroll = true,
+                                    smoothScroll = false
+                                )
+                            )
                         }
                     }
 
@@ -134,15 +167,15 @@ class FeedViewModel(
                         }
 
                         previousState.copy(
-                                feed = feed,
-                                seen = feed.filter { item -> seenService.isSeen(item.id) }.mapTo(HashSet()) { it.id },
-                                empty = update.remote && feed.isEmpty(),
-                                highlightedItemIds = highlightedItemIds,
-                                autoScrollRef = autoScrollRef,
-                                error = null,
-                                errorConsumable = null,
-                                missingContentType = null,
-                                loading = null,
+                            feed = feed,
+                            seen = feed.filter { item -> seenService.isSeen(item.id) }.mapTo(HashSet()) { it.id },
+                            empty = update.remote && feed.isEmpty(),
+                            highlightedItemIds = highlightedItemIds,
+                            autoScrollRef = autoScrollRef,
+                            error = null,
+                            errorConsumable = null,
+                            missingContentType = null,
+                            loading = null,
                         )
                     }
                 }
@@ -154,7 +187,7 @@ class FeedViewModel(
 
                     feedState.update { previousState ->
                         val baseState = previousState.copy(
-                                error = null, errorConsumable = null, missingContentType = null,
+                            error = null, errorConsumable = null, missingContentType = null,
                         )
 
                         when (error) {
@@ -206,8 +239,8 @@ class FeedViewModel(
 
         // list of items sorted by ascending points
         val topItems = feed.drop(10).dropLast(10)
-                .filter { item -> isTopCandidate(item) }
-                .sortedByDescending { it.up - it.down }
+            .filter { item -> isTopCandidate(item) }
+            .sortedByDescending { it.up - it.down }
 
         // start with items that are actually still in the feed
         val result = highlightedItemIds.filterTo(HashSet()) { itemId -> itemId in allItemIds }
@@ -264,17 +297,38 @@ class FeedViewModel(
     private suspend fun restoreFeedItems() {
         val placeholders = feedState.value.feed.filter { it.placeholder }
 
-        val cachedItems = runInterruptible(Dispatchers.IO) {
+        val (cachedItems, cachedVariants, cachedSubtitles) = runInterruptible(Dispatchers.IO) {
             logger.time("Loading ${placeholders.size} cached items") {
-                placeholders.chunked(256).flatMap { itemsChunk ->
-                    itemQueries.lookup(itemsChunk.map { item -> item.id }).executeAsList()
+                val items = placeholders.chunked(256).flatMap { itemsChunk ->
+                    val ids = itemsChunk.map { item -> item.id }
+                    itemQueries.lookup(ids).executeAsList()
                 }
+
+                val variants = placeholders.chunked(256).flatMap { itemsChunk ->
+                    val ids = itemsChunk.map { item -> item.id }
+                    itemQueries.lookupVariants(ids).executeAsList()
+                }
+
+                val subtitles = placeholders.chunked(256).flatMap { itemsChunk ->
+                    val ids = itemsChunk.map { item -> item.id }
+                    itemQueries.lookupSubtitles(ids).executeAsList()
+                }
+
+                val groupedVariants = variants.groupBy { v -> v.itemId }
+                val groupedSubtitles = subtitles.groupBy { v -> v.itemId }
+
+                Triple(items, groupedVariants, groupedSubtitles)
             }
         }
 
         val byId = cachedItems.associateBy(
-                keySelector = CachedItemInfo::id,
-                valueTransform = CachedItemInfo::toFeedItem,
+            keySelector = CachedItemInfo::id,
+            valueTransform = { ci ->
+                ci.toFeedItem(
+                    variants = cachedVariants[ci.id] ?: listOf(),
+                    subtitles = cachedSubtitles[ci.id] ?: listOf(),
+                )
+            },
         )
 
         feedState.update { previousState ->
@@ -283,9 +337,9 @@ class FeedViewModel(
             }
 
             previousState.copy(
-                    ready = true,
-                    cachedItemsById = byId,
-                    feed = previousState.feed.copy(items = newItems),
+                ready = true,
+                cachedItemsById = byId,
+                feed = previousState.feed.copy(items = newItems),
             )
         }
     }
@@ -304,7 +358,7 @@ class FeedViewModel(
 
         // get the most recent item in the updated feed items
         val newestItem = (new - old).filter { !it.isPinned }.maxByOrNull { new.feedTypeId(it) }
-                ?: return
+            ?: return
 
         // add 'repost' to query
         val queryTerm = Tags.joinAnd("! 'repost'", filter.tags)
@@ -364,36 +418,36 @@ class FeedViewModel(
 
     suspend fun findNextWith(matcher: (state: FeedState, itemId: Long) -> Boolean): FeedItem? {
         return feedState
-                .flatMapConcat { feedState ->
-                    val targetItem = feedState.feed.firstOrNull { item ->
-                        matcher(feedState, item.id) && !item.isPinned
-                    }
-
-                    when {
-                        feedState.feed.isEmpty() && feedState.feed.isAtEnd -> {
-                            flowOf(feedState.feed.lastOrNull())
-                        }
-
-                        feedState.feed.size > 4000 -> {
-                            // no result within the first few pages
-                            throw StringException("max scroll distance reached", R.string.error_max_scroll_reached)
-                        }
-
-                        targetItem != null -> {
-                            flowOf(targetItem)
-                        }
-
-                        !feedState.isLoading -> {
-                            // load next page!
-                            triggerLoadNext()
-                            emptyFlow()
-                        }
-
-                        // emit nothing, wait for next update
-                        else -> emptyFlow()
-                    }
+            .flatMapConcat { feedState ->
+                val targetItem = feedState.feed.firstOrNull { item ->
+                    matcher(feedState, item.id) && !item.isPinned
                 }
-                .firstOrNull()
+
+                when {
+                    feedState.feed.isEmpty() && feedState.feed.isAtEnd -> {
+                        flowOf(feedState.feed.lastOrNull())
+                    }
+
+                    feedState.feed.size > 4000 -> {
+                        // no result within the first few pages
+                        throw StringException("max scroll distance reached", R.string.error_max_scroll_reached)
+                    }
+
+                    targetItem != null -> {
+                        flowOf(targetItem)
+                    }
+
+                    !feedState.isLoading -> {
+                        // load next page!
+                        triggerLoadNext()
+                        emptyFlow()
+                    }
+
+                    // emit nothing, wait for next update
+                    else -> emptyFlow()
+                }
+            }
+            .firstOrNull()
     }
 
     class SavedState(handle: SavedStateHandle) : SavedStateAccessor(handle) {
@@ -411,46 +465,51 @@ class FeedViewModel(
     }
 
     data class FeedState(
-            val ready: Boolean,
-            val feed: Feed,
-            val seen: Set<Long> = setOf(),
-            val errorStr: String? = null,
-            val error: Throwable? = null,
-            val errorConsumable: ConsumableValue<Throwable>? = null,
-            val missingContentType: ContentType? = null,
-            val loading: FeedManager.LoadingSpace? = null,
-            val repostRefreshTime: Long = 0,
-            val adsVisible: Boolean = false,
-            val markItemsAsSeen: Boolean = Settings.markItemsAsSeen,
-            val preloadedItemIds: LongSparseArray<PreloadManager.PreloadItem> = LongSparseArray(initialCapacity = 0),
-            val autoScrollRef: ConsumableValue<ScrollRef>? = null,
-            val highlightedItemIds: Set<Long> = setOf(),
-            val cachedItemsById: Map<Long, FeedItem>? = null,
-            val empty: Boolean = false
+        val ready: Boolean,
+        val feed: Feed,
+        val seen: Set<Long> = setOf(),
+        val errorStr: String? = null,
+        val error: Throwable? = null,
+        val errorConsumable: ConsumableValue<Throwable>? = null,
+        val missingContentType: ContentType? = null,
+        val loading: FeedManager.LoadingSpace? = null,
+        val repostRefreshTime: Long = 0,
+        val adsVisible: Boolean = false,
+        val markItemsAsSeen: Boolean = Settings.markItemsAsSeen,
+        val preloadedItemIds: LongSparseArray<PreloadManager.PreloadItem> = LongSparseArray(initialCapacity = 0),
+        val autoScrollRef: ConsumableValue<ScrollRef>? = null,
+        val highlightedItemIds: Set<Long> = setOf(),
+        val cachedItemsById: Map<Long, FeedItem>? = null,
+        val empty: Boolean = false
     ) {
         val isLoading = loading != null
     }
 }
 
-private fun CachedItemInfo.toFeedItem(): FeedItem {
+private fun CachedItemInfo.toFeedItem(variants: List<CachedMediaVariant>, subtitles: List<CachedSubtitle>): FeedItem {
+    val mappedVariants = variants.map { v -> Api.Feed.Variant(name = v.name, path = v.path) }
+    val mappedSubtitles = subtitles.map { s -> Api.Feed.Subtitle(language = s.language, path = s.path) }
+
     return FeedItem(
-            id = id,
-            promotedId = promotedId,
-            image = image,
-            fullsize = fullsize,
-            thumbnail = thumbnail,
-            user = user,
-            userId = userId,
-            created = Instant.ofEpochSeconds(created),
-            width = width,
-            height = height,
-            up = up,
-            down = down,
-            mark = mark,
-            flags = flags,
-            audio = audio,
-            deleted = deleted,
-            placeholder = false,
+        id = id,
+        promotedId = promotedId,
+        path = image,
+        fullsize = fullsize,
+        thumbnail = thumbnail,
+        user = user,
+        userId = userId,
+        created = Instant.ofEpochSeconds(created),
+        width = width,
+        height = height,
+        up = up,
+        down = down,
+        mark = mark,
+        flags = flags,
+        audio = audio,
+        deleted = deleted,
+        variants = mappedVariants,
+        subtitles = mappedSubtitles,
+        placeholder = false,
     )
 }
 

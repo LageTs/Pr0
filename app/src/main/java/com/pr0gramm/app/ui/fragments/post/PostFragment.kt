@@ -527,17 +527,17 @@ class PostFragment : BaseFragment("PostFragment"), NewTagDialogFragment.OnAddNew
             viewer.pivotX = params.pivot.x
             viewer.pivotY = params.pivot.y
 
-            fullscreenAnimator = ObjectAnimator.ofPropertyValuesHolder(
-                viewer,
-                ofFloat(View.ROTATION, params.rotation),
-                ofFloat(View.TRANSLATION_Y, params.trY),
-                ofFloat(View.SCALE_X, params.scale),
-                ofFloat(View.SCALE_Y, params.scale)
-            ).apply {
-
-                duration = 500
-                start()
-            }
+            fullscreenAnimator = ObjectAnimator
+                .ofPropertyValuesHolder(
+                    viewer,
+                    ofFloat(View.ROTATION, params.rotation),
+                    ofFloat(View.TRANSLATION_Y, params.trY),
+                    ofFloat(View.SCALE_X, params.scale),
+                    ofFloat(View.SCALE_Y, params.scale)
+                ).also { animator ->
+                    animator.duration = 500
+                    animator.start()
+                }
 
             views.repostHint.isVisible = false
 
@@ -564,6 +564,7 @@ class PostFragment : BaseFragment("PostFragment"), NewTagDialogFragment.OnAddNew
             currentMediaViewState().controlsContainer?.let { mcc ->
                 mcc.removeFromParent()
                 viewer.addView(mcc)
+                applyControlContainerScaling(mcc, viewer, params)
             }
 
             views.fab.hide()
@@ -584,6 +585,10 @@ class PostFragment : BaseFragment("PostFragment"), NewTagDialogFragment.OnAddNew
         viewer.translationY = params.trY
         viewer.scaleX = params.scale
         viewer.scaleY = params.scale
+
+        currentMediaViewState().controlsContainer?.let { mcc ->
+            applyControlContainerScaling(mcc, viewer, params)
+        }
     }
 
     fun exitFullscreen() {
@@ -623,7 +628,11 @@ class PostFragment : BaseFragment("PostFragment"), NewTagDialogFragment.OnAddNew
         Screen.unlockOrientation(activity)
 
         // gets attached to different parent somewhere else
-        currentMediaViewState().controlsContainer?.removeFromParent()
+        currentMediaViewState().controlsContainer?.let { mcc ->
+            mcc.removeFromParent()
+            mcc.scaleX = 1.0f
+            mcc.scaleY = 1.0f
+        }
 
         // and tell the adapter to bind it back to the view.
         views.recyclerView.postAdapter?.let { adapter ->
@@ -632,6 +641,22 @@ class PostFragment : BaseFragment("PostFragment"), NewTagDialogFragment.OnAddNew
                 adapter.notifyItemChanged(idx)
             }
         }
+    }
+
+    private fun applyControlContainerScaling(
+        mcc: ViewGroup,
+        viewer: MediaView,
+        params: ViewerFullscreenParameters
+    ) {
+        mcc.layoutParams = FrameLayout.LayoutParams(
+            (viewer.width * params.scale).toInt(),
+            ((viewer.height - viewer.paddingTop) * params.scale).toInt(),
+        )
+
+        mcc.scaleX = 1.0f / params.scale
+        mcc.scaleY = 1.0f / params.scale
+        mcc.pivotY = 0.0f
+        mcc.pivotX = 0.0f
     }
 
     internal val isVideoFullScreen: Boolean get() = fullscreenAnimator != null
@@ -773,7 +798,8 @@ class PostFragment : BaseFragment("PostFragment"), NewTagDialogFragment.OnAddNew
         val activity = requireActivity()
         val uri = buildMediaUri()
 
-        val viewerConfig = Config(activity, uri, audio = feedItem.audio, previewInfo = previewInfo)
+        val viewerConfig =
+            Config(activity, uri, audio = feedItem.audio, previewInfo = previewInfo, subtitles = feedItem.subtitles)
         val viewer = logger.time("MediaView.newInstance(${uri.baseUri})") {
             MediaViews.newInstance(viewerConfig)
         }
@@ -1168,7 +1194,7 @@ class PostFragment : BaseFragment("PostFragment"), NewTagDialogFragment.OnAddNew
      */
     private fun isStaticImage(image: FeedItem): Boolean {
         return listOf(".jpg", ".jpeg", ".png").any {
-            image.image.endsWith(it, ignoreCase = true)
+            image.path.endsWith(it, ignoreCase = true)
         }
     }
 

@@ -36,7 +36,8 @@ class UpdateDialogFragment : BaseDialogFragment("UpdateDialogFragment") {
     private val singleShotService: SingleShotService by instance()
 
     override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
-        return noNewUpdateDialog()
+        val update = arguments?.getParcelable<Update?>("update")
+        return update?.let { updateAvailableDialog(it) } ?: noNewUpdateDialog()
     }
 
     private fun updateAvailableDialog(update: Update): Dialog {
@@ -79,10 +80,10 @@ class UpdateDialogFragment : BaseDialogFragment("UpdateDialogFragment") {
         suspend fun checkForUpdatesInBackground(context: Context, fm: FragmentManager) {
             val prefs = context.injector.instance<SharedPreferences>()
 
-            // only check once an hour.
+            // only check daily.
             if (!BuildConfig.DEBUG) {
                 val last = Instant(prefs.getLong(KEY_LAST_UPDATE_CHECK, 0))
-                if (last.isAfter(Instant.now() - Duration.hours(1)))
+                if (last.isAfter(Instant.now() - Duration.hours(24)))
                     return
             }
 

@@ -23,7 +23,7 @@
     <string name="error_not_found">Die angefragte Ressource konnte nicht gefunden werden (Fehler 404).</string>
     <string name="error_nullpointer">Hoppla, da ist etwas schiefgelaufen. Bitte versuche es noch einmal.</string>
     <string name="error_oom">Die App verwendet zu viel Speicher. Eventuell ist es dein altes Smartphone oder ein Bug in der App.</string>
-    <string name="error_service_unavailable">Pr0gramm ist gerade nicht verfügbar. Informationen zu Störungen auch auf https://twitter.com/pr0gramm</string>
+    <string name="error_service_unavailable">Pr0gramm ist gerade nicht verfügbar. Informationen zu Störungen auch auf https://nitter.net/pr0gramm</string>
     <string name="hint_password">Passwort</string>
     <string name="hint_username">Benutzername</string>
     <string name="login">Login</string>

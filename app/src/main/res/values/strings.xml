@@ -26,7 +26,7 @@
     <string name="error_nullpointer">A programming error occurred. I am very sorry.</string>
     <string name="error_oom">The app ran of memory. This might be your old smartphone or a bug in the app.</string>
     <string name="error_timeout">A timeout occurred during a network request.</string>
-    <string name="error_service_unavailable">Looks like pr0gramm is not available right now. Please check https://twitter.com/pr0gramm if this error persists.</string>
+    <string name="error_service_unavailable">Looks like pr0gramm is not available right now. Please check https://nitter.net/pr0gramm if this error persists.</string>
     <string name="hint_password">Password</string>
     <string name="hint_username">Your username</string>
     <string name="login">Login</string>

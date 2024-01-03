@@ -6,6 +6,7 @@ import com.pr0gramm.app.Stats
 import com.pr0gramm.app.TimeFactory
 import com.pr0gramm.app.api.pr0gramm.Api
 import com.pr0gramm.app.db.FeedItemInfoQueries
+import com.pr0gramm.app.services.SeenService
 import com.pr0gramm.app.services.UserService
 import com.pr0gramm.app.time
 import com.pr0gramm.app.ui.base.AsyncScope
@@ -47,12 +48,15 @@ interface FeedService {
         val newer: Long? = null, val older: Long? = null, val around: Long? = null
     )
 
+    fun getSeenService(): SeenService
+
 }
 
 class FeedServiceImpl(
     private val api: Api,
     private val userService: UserService,
-    private val itemQueries: FeedItemInfoQueries
+    private val itemQueries: FeedItemInfoQueries,
+    private val seenService: SeenService
 ) : FeedService {
     private val logger = Logger("FeedService")
 
@@ -102,13 +106,21 @@ class FeedServiceImpl(
                     Tags.joinAnd("s:700 f:nsfw", feedFilter.tags),
                 )
 
-                load(query.copy(filter = feedFilter.withFeedType(FeedType.NEW).basicWithTags(tagsQuery)))
+                load(
+                    query.copy(
+                        filter = feedFilter.withFeedType(FeedType.NEW).basicWithTags(tagsQuery)
+                    )
+                )
             }
 
             FeedType.CONTROVERSIAL -> {
                 // just add the f:controversial flag to the query
                 val tagsQuery = Tags.joinAnd("!f:controversial", feedFilter.tags)
-                load(query.copy(filter = feedFilter.withFeedType(FeedType.NEW).basicWithTags(tagsQuery)))
+                load(
+                    query.copy(
+                        filter = feedFilter.withFeedType(FeedType.NEW).basicWithTags(tagsQuery)
+                    )
+                )
             }
 
             else -> {
@@ -212,5 +224,9 @@ class FeedServiceImpl(
                 }
             }
         }
+    }
+
+    override fun getSeenService(): SeenService {
+        return seenService
     }
 }

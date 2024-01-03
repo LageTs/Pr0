@@ -15,6 +15,7 @@ import com.pr0gramm.app.parcel.readValues
 import com.pr0gramm.app.parcel.write
 import com.pr0gramm.app.parcel.writeBooleanCompat
 import com.pr0gramm.app.parcel.writeValues
+import com.pr0gramm.app.services.SeenService
 import com.pr0gramm.app.util.Serde
 import java.util.zip.Deflater
 
@@ -30,25 +31,26 @@ data class Feed(
     val created: Instant = Instant.now()
 ) : List<FeedItem> by items {
 
-
     private val itemComparator = compareByDescending(this::feedTypeId)
 
     val feedType: FeedType get() = filter.feedType
 
     val oldestNonPlaceholderItem: FeedItem?
-        get() = items.asSequence().filterNot { item -> item.placeholder }.maxWithOrNull(itemComparator)
+        get() = items.asSequence().filterNot { item -> item.placeholder }
+            .maxWithOrNull(itemComparator)
     val newestNonPlaceholderItem: FeedItem?
-        get() = items.asSequence().filterNot { item -> item.placeholder }.minWithOrNull(itemComparator)
+        get() = items.asSequence().filterNot { item -> item.placeholder }
+            .minWithOrNull(itemComparator)
 
     /**
      * Merges this feed with the provided low level feed representation
      * and returns a new, immutable merged feed.
      */
-    fun mergeWith(update: Api.Feed): Feed {
+    fun mergeWith(update: Api.Feed, seenService: SeenService): Feed {
         val isAtEnd = isAtEnd or update.isAtEnd
         val isAtStart = isAtStart or update.isAtStart or !feedType.sortable
 
-        val newItems = mergeItems(update.items.map { FeedItem(it) })
+        val newItems = mergeItems(update.items.map { FeedItem(it) }, seenService)
         return copy(items = newItems, isAtStart = isAtStart, isAtEnd = isAtEnd)
     }
 
@@ -56,11 +58,11 @@ data class Feed(
         return copy(items = items.filterNot { item -> item.placeholder })
     }
 
-    private fun mergeWith(other: Feed): Feed {
+    private fun mergeWith(other: Feed, seenService: SeenService): Feed {
         val isAtEnd = isAtEnd or other.isAtEnd
         val isAtStart = isAtStart or other.isAtStart or !feedType.sortable
 
-        val newItems = mergeItems(other.items)
+        val newItems = mergeItems(other.items, seenService)
         return copy(items = newItems, isAtStart = isAtStart, isAtEnd = isAtEnd)
     }
 
@@ -68,7 +70,7 @@ data class Feed(
      * Adds the api feed to the items of this feed and returns
      * a list of items.
      */
-    private fun mergeItems(newItems: List<FeedItem>): List<FeedItem> {
+    private fun mergeItems(newItems: List<FeedItem>, seenService: SeenService): List<FeedItem> {
         val target = ArrayList<FeedItem>(items.size + newItems.size)
 
         // add them to the target
@@ -81,7 +83,8 @@ data class Feed(
         }
 
         // set with ids of all real values
-        val realIds = target.filter { item -> !item.placeholder }.mapTo(mutableSetOf()) { item -> item.id }
+        val realIds = target.filter { item -> !item.placeholder && !seenService.isSeen(item.id) }
+            .mapTo(mutableSetOf()) { item -> item.id }
 
         // remove all placeholders from the target that also have real ids.
         target.removeAll { item -> item.placeholder && item.id in realIds }
@@ -121,21 +124,25 @@ data class Feed(
         val toIndexExclusive = (index + itemCountAround).coerceIn(0, items.size)
 
         // return a parcel with a window to the data
-        return FeedParcel(this, subset = copy(items = this.items.subList(fromIndex, toIndexExclusive)))
+        return FeedParcel(
+            this,
+            subset = copy(items = this.items.subList(fromIndex, toIndexExclusive))
+        )
     }
 
     /**
      * Merges both feeds
      */
-    fun mergeIfPossible(other: Feed): Feed? {
+    fun mergeIfPossible(other: Feed, seenService: SeenService): Feed? {
         if (filter != other.filter || contentType != other.contentType)
             return null
 
         val overlap = other.any { it in this }
-        return if (overlap) mergeWith(other) else null
+        return if (overlap) mergeWith(other, seenService) else null
     }
 
-    class FeedParcel(val feed: Feed, private val subset: List<FeedItem>) : DefaultParcelable, List<FeedItem> by feed {
+    class FeedParcel(val feed: Feed, private val subset: List<FeedItem>) : DefaultParcelable,
+        List<FeedItem> by feed {
         private val logger = Logger("FeedParcel")
 
         override fun writeToParcel(dest: Parcel, flags: Int) {
@@ -175,7 +182,7 @@ data class Feed(
                     contentType = ContentType.decompose(readInt()),
                     isAtStart = readBooleanCompat(),
                     created = read(Instant),
-                    items = listOf(),
+                    items = listOf()
                 )
 
                 // read the actual items that are parceled

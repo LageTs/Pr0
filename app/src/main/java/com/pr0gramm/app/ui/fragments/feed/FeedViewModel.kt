@@ -53,12 +53,12 @@ class FeedViewModel(
     private val savedState: SavedState,
     filter: FeedFilter, loadAroundItemId: Long?,
 
-        private val feedService: FeedService,
-        private val userService: UserService,
-        private val seenService: SeenService,
-        private val inMemoryCacheService: InMemoryCacheService,
-        private val preloadManager: PreloadManager,
-        private val itemQueries: FeedItemInfoQueries,
+    private val feedService: FeedService,
+    userService: UserService,
+    val seenService: SeenService,
+    private val inMemoryCacheService: InMemoryCacheService,
+    private val preloadManager: PreloadManager,
+    private val itemQueries: FeedItemInfoQueries,
 ) : ViewModel() {
 
     private val logger = Logger("FeedViewModel")
@@ -109,7 +109,8 @@ class FeedViewModel(
     private suspend fun observeSeenService() {
         seenService.currentGeneration.collect {
             feedState.update { previousState ->
-                val seen = previousState.feed.map { it.id }.filterTo(HashSet()) { id -> seenService.isSeen(id) }
+                val seen = previousState.feed.map { it.id }
+                    .filterTo(HashSet()) { id -> seenService.isSeen(id) }
                 previousState.copy(seen = seen)
             }
         }
@@ -168,7 +169,8 @@ class FeedViewModel(
 
                         previousState.copy(
                             feed = feed,
-                            seen = feed.filter { item -> seenService.isSeen(item.id) }.mapTo(HashSet()) { it.id },
+                            seen = feed.filter { item -> seenService.isSeen(item.id) }
+                                .mapTo(HashSet()) { it.id },
                             empty = update.remote && feed.isEmpty(),
                             highlightedItemIds = highlightedItemIds,
                             autoScrollRef = autoScrollRef,
@@ -430,7 +432,10 @@ class FeedViewModel(
 
                     feedState.feed.size > 4000 -> {
                         // no result within the first few pages
-                        throw StringException("max scroll distance reached", R.string.error_max_scroll_reached)
+                        throw StringException(
+                            "max scroll distance reached",
+                            R.string.error_max_scroll_reached
+                        )
                     }
 
                     targetItem != null -> {
@@ -476,7 +481,9 @@ class FeedViewModel(
         val repostRefreshTime: Long = 0,
         val adsVisible: Boolean = false,
         val markItemsAsSeen: Boolean = Settings.markItemsAsSeen,
-        val preloadedItemIds: LongSparseArray<PreloadManager.PreloadItem> = LongSparseArray(initialCapacity = 0),
+        val preloadedItemIds: LongSparseArray<PreloadManager.PreloadItem> = LongSparseArray(
+            initialCapacity = 0
+        ),
         val autoScrollRef: ConsumableValue<ScrollRef>? = null,
         val highlightedItemIds: Set<Long> = setOf(),
         val cachedItemsById: Map<Long, FeedItem>? = null,
@@ -486,9 +493,13 @@ class FeedViewModel(
     }
 }
 
-private fun CachedItemInfo.toFeedItem(variants: List<CachedMediaVariant>, subtitles: List<CachedSubtitle>): FeedItem {
+private fun CachedItemInfo.toFeedItem(
+    variants: List<CachedMediaVariant>,
+    subtitles: List<CachedSubtitle>
+): FeedItem {
     val mappedVariants = variants.map { v -> Api.Feed.Variant(name = v.name, path = v.path) }
-    val mappedSubtitles = subtitles.map { s -> Api.Feed.Subtitle(language = s.language, path = s.path) }
+    val mappedSubtitles =
+        subtitles.map { s -> Api.Feed.Subtitle(language = s.language, path = s.path) }
 
     return FeedItem(
         id = id,

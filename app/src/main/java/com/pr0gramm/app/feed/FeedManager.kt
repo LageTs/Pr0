@@ -11,7 +11,11 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.launch
 
-class FeedManager(private val scope: CoroutineScope, private val feedService: FeedService, private var feed: Feed) {
+class FeedManager(
+    private val scope: CoroutineScope,
+    private val feedService: FeedService,
+    private var feed: Feed
+) {
     private val logger = Logger("FeedService")
 
     private val subject = MutableSharedFlow<Update>(extraBufferCapacity = 8)
@@ -112,19 +116,21 @@ class FeedManager(private val scope: CoroutineScope, private val feedService: Fe
     private fun handleFeedUpdate(update: Api.Feed) {
         // check for invalid content type.
         update.error?.let { error ->
-            publishError(when (error) {
-                "notPublic" -> FeedException.NotPublicException()
-                "notFound" -> FeedException.NotFoundException()
-                "sfwRequired" -> FeedException.InvalidContentTypeException(ContentType.SFW)
-                "nsfwRequired" -> FeedException.InvalidContentTypeException(ContentType.NSFW)
-                "nsflRequired" -> FeedException.InvalidContentTypeException(ContentType.NSFL)
-                else -> FeedException.GeneralFeedException(error)
-            })
+            publishError(
+                when (error) {
+                    "notPublic" -> FeedException.NotPublicException()
+                    "notFound" -> FeedException.NotFoundException()
+                    "sfwRequired" -> FeedException.InvalidContentTypeException(ContentType.SFW)
+                    "nsfwRequired" -> FeedException.InvalidContentTypeException(ContentType.NSFW)
+                    "nsflRequired" -> FeedException.InvalidContentTypeException(ContentType.NSFL)
+                    else -> FeedException.GeneralFeedException(error)
+                }
+            )
 
             return
         }
 
-        val merged = feed.mergeWith(update)
+        val merged = feed.mergeWith(update, feedService.getSeenService())
         publish(merged, remote = true)
     }
 

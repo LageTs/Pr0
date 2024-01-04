@@ -589,4 +589,6 @@
 
     <string name="user_validate_success">Dein Alter wurde verifiziert</string>
     <string name="user_validate_failed">Ungültiges Token.</string>
+    <string name="pref_remove_seen_items_summary">Entferne gesehene Post aus dem Feed. Posts sind weiterhin per Link aufrufbar, nicht jedoch über die Suche. ACHTUNG: instabil!</string>
+    <string name="remove_seen_items_title">Gesehene Posts ausblenden</string>
 </resources>

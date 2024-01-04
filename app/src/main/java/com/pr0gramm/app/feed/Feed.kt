@@ -3,6 +3,7 @@ package com.pr0gramm.app.feed
 import android.os.Parcel
 import com.pr0gramm.app.Instant
 import com.pr0gramm.app.Logger
+import com.pr0gramm.app.Settings.removeSeenItems
 import com.pr0gramm.app.Stopwatch
 import com.pr0gramm.app.api.pr0gramm.Api
 import com.pr0gramm.app.listOfSize
@@ -81,6 +82,10 @@ data class Feed(
             // sort them correctly
             target.sortWith(itemComparator)
         }
+
+        //remove seen posts from feed
+        if (removeSeenItems)
+            target.removeAll { item -> seenService.isSeen(item.id) }
 
         // set with ids of all real values
         val realIds = target.filter { item -> !item.placeholder && !seenService.isSeen(item.id) }

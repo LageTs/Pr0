@@ -247,6 +247,13 @@
                     android:title="@string/pref_seen_indicator_style" />
 
                 <SwitchPreferenceCompat
+                    android:defaultValue="false"
+                    android:dependency="pref_mark_items_as_seen"
+                    android:key="pref_remove_seen_items"
+                    android:summary="@string/pref_remove_seen_items_summary"
+                    android:title="@string/remove_seen_items_title" />
+
+                <SwitchPreferenceCompat
                     android:defaultValue="true"
                     android:key="pref_use_tag_as_title"
                     android:summary="@string/pref_use_tag_as_title_sumary"

@@ -48,7 +48,7 @@ class UpdateChecker {
 
     private val endpoints: List<String> = mutableListOf<String>().also { urls ->
         if (Settings.useBetaChannel) {
-            urls += "https://raw.githubusercontent.com/LageTs/Pr0/master/update.json"
+            urls += "https://raw.githubusercontent.com/LageTs/Pr0/beta/update.json"
         } else {
             urls += "https://raw.githubusercontent.com/LageTs/Pr0/master/update.json"
         }

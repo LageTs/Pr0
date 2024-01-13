@@ -84,7 +84,7 @@ data class Feed(
         }
 
         //remove seen posts from feed
-        if (removeSeenItems)
+        if (removeSeenItems && feedType == FeedType.RANDOM)
             target.removeAll { item -> seenService.isSeen(item.id) }
 
         // set with ids of all real values

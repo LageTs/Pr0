@@ -150,7 +150,7 @@ class FeedManager(
     private fun publish(newFeed: Feed, remote: Boolean, callee: Callee) {
         val sizeBefore: Int = feed.size
         feed = newFeed
-        if (removeSeenItems && (feed.size < 75 || feed.size - sizeBefore < 50)) {
+        if (removeSeenItems && feed.feedType == FeedType.RANDOM && (feed.size < 75 || feed.size - sizeBefore < 50)) {
             overwriteLoading = true
             Thread.sleep(1500)
             when (callee) {

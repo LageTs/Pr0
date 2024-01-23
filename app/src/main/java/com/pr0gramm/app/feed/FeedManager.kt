@@ -126,16 +126,15 @@ class FeedManager(
     private fun handleFeedUpdate(update: Api.Feed, callee: Callee) {
         // check for invalid content type.
         update.error?.let { error ->
-            publishError(
-                when (error) {
-                    "notPublic" -> FeedException.NotPublicException()
-                    "notFound" -> FeedException.NotFoundException()
-                    "sfwRequired" -> FeedException.InvalidContentTypeException(ContentType.SFW)
-                    "nsfwRequired" -> FeedException.InvalidContentTypeException(ContentType.NSFW)
-                    "nsflRequired" -> FeedException.InvalidContentTypeException(ContentType.NSFL)
-                    else -> FeedException.GeneralFeedException(error)
-                }
-            )
+            publishError(when (error) {
+                "notPublic" -> FeedException.NotPublicException()
+                "notFound" -> FeedException.NotFoundException()
+                "sfwRequired" -> FeedException.InvalidContentTypeException(ContentType.SFW)
+                "nsfwRequired" -> FeedException.InvalidContentTypeException(ContentType.NSFW)
+                "nsflRequired" -> FeedException.InvalidContentTypeException(ContentType.NSFL)
+                "polRequired" -> FeedException.InvalidContentTypeException(ContentType.POL)
+                else -> FeedException.GeneralFeedException(error)
+            })
 
             return
         }

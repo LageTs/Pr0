@@ -837,7 +837,8 @@ class FeedFragment : BaseFragment("FeedFragment", R.layout.fragment_feed), Filte
         val types = mapOf(
             R.id.action_content_type_sfw to Settings.contentTypeSfw,
             R.id.action_content_type_nsfw to Settings.contentTypeNsfw,
-            R.id.action_content_type_nsfl to Settings.contentTypeNsfl
+            R.id.action_content_type_nsfl to Settings.contentTypeNsfl,
+            R.id.action_content_type_pol to Settings.contentTypePol,
         )
 
         for ((key, value) in types) {
@@ -852,7 +853,8 @@ class FeedFragment : BaseFragment("FeedFragment", R.layout.fragment_feed), Filte
         val contentTypes = mapOf(
             R.id.action_content_type_sfw to "pref_feed_type_sfw",
             R.id.action_content_type_nsfw to "pref_feed_type_nsfw",
-            R.id.action_content_type_nsfl to "pref_feed_type_nsfl"
+            R.id.action_content_type_nsfl to "pref_feed_type_nsfl",
+            R.id.action_content_type_pol to "pref_feed_type_pol",
         )
 
         if (contentTypes.containsKey(item.itemId)) {

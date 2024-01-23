@@ -12,6 +12,7 @@ import androidx.core.view.get
 import androidx.core.view.size
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.RecyclerView
+import com.pr0gramm.app.Logger
 import com.pr0gramm.app.R
 import com.pr0gramm.app.api.pr0gramm.Api
 import com.pr0gramm.app.feed.FeedItem
@@ -23,6 +24,7 @@ import com.pr0gramm.app.ui.views.InfoLineView
 import com.pr0gramm.app.ui.views.PostActions
 import com.pr0gramm.app.ui.views.TagsView
 import com.pr0gramm.app.util.LongSparseArray
+import com.pr0gramm.app.util.debugOnly
 import com.pr0gramm.app.util.dp
 import com.pr0gramm.app.util.removeFromParent
 import com.pr0gramm.app.util.weakref
@@ -279,6 +281,25 @@ private class PlaceholderView(context: Context) : FrameLayout(context) {
 
     @SuppressLint("ClickableViewAccessibility")
     override fun onTouchEvent(event: MotionEvent): Boolean {
-        return viewer?.onTouchEvent(event) ?: false
+        val viewer = viewer ?: return false
+
+        val offsetY = y - viewer.y
+
+        debugOnly {
+            val log = Logger("Touch")
+            log.info { "Viewer height: ${viewer.height}" }
+            log.info { "Viewer y: ${viewer.y}" }
+            log.info { "Container height: ${height}" }
+            log.info { "Container y: ${y}" }
+            log.info { "TouchY: ${event.y}" }
+        }
+
+        val eventCopy = MotionEvent.obtainNoHistory(event)
+        eventCopy.offsetLocation(0.0f, offsetY)
+        try {
+            return viewer.dispatchTouchEvent(eventCopy)
+        } finally {
+            eventCopy.recycle()
+        }
     }
 }

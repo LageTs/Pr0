@@ -8,7 +8,15 @@
       },
       {
         "type": "Fix",
-        "change": "Vollbild im mit Mobilfunk auf einigen Geräten behoben."
+        "change": "Vollbild bei Mobilfunk auf einigen Geräten behoben."
+      },
+      {
+        "type": "Fix",
+        "change": "Icon auf dem Videospieler wieder farbig gemacht."
+      },
+      {
+        "type": "Fix",
+        "change": "Nicht verifizierte Nutzer können zwischen SFW/POL wählen."
       }
     ]
   },

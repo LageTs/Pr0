@@ -108,7 +108,8 @@ import kotlin.math.min
 
 /**
  */
-class FeedFragment : BaseFragment("FeedFragment", R.layout.fragment_feed), FilterFragment, TitleFragment, BackAwareFragment {
+class FeedFragment : BaseFragment("FeedFragment", R.layout.fragment_feed), FilterFragment, TitleFragment,
+    BackAwareFragment {
 
     private val feedStateModel by viewModels { handle ->
         val start = arguments?.getParcelable<CommentRef?>(ARG_FEED_START)
@@ -118,9 +119,9 @@ class FeedFragment : BaseFragment("FeedFragment", R.layout.fragment_feed), Filte
         }
 
         FeedViewModel(
-                savedState = FeedViewModel.SavedState(handle),
-                filter = requireArguments().getParcelableOrThrow(ARG_FEED_FILTER),
-                loadAroundItemId = autoScrollRef?.ref?.itemId,
+            savedState = FeedViewModel.SavedState(handle),
+            filter = requireArguments().getParcelableOrThrow(ARG_FEED_FILTER),
+            loadAroundItemId = autoScrollRef?.ref?.itemId,
 
                 feedService = instance(),
                 userService = instance(),
@@ -133,10 +134,10 @@ class FeedFragment : BaseFragment("FeedFragment", R.layout.fragment_feed), Filte
 
     private val userStateModel by viewModels {
         UserStateModel(
-                filter = requireArguments().getParcelableOrThrow(ARG_FEED_FILTER),
-                queryForUserInfo = isNormalMode,
-                userService = instance(),
-                inboxService = instance()
+            filter = requireArguments().getParcelableOrThrow(ARG_FEED_FILTER),
+            queryForUserInfo = isNormalMode,
+            userService = instance(),
+            inboxService = instance()
         )
     }
 
@@ -223,6 +224,8 @@ class FeedFragment : BaseFragment("FeedFragment", R.layout.fragment_feed), Filte
             spanSizeLookup = feedAdapter.SpanSizeLookup(spanCount)
         }
 
+        activity.configureRecyclerView("Feed", views.recyclerView)
+
         views.recyclerView.addOnScrollListener(onScrollListener)
 
         // we can still swipe up if we are not at the start of the feed.
@@ -260,11 +263,16 @@ class FeedFragment : BaseFragment("FeedFragment", R.layout.fragment_feed), Filte
 
         launchInViewScope {
             data class Update(
-                    val feedState: FeedViewModel.FeedState,
-                    val userState: UserStateModel.UserState
+                val feedState: FeedViewModel.FeedState,
+                val userState: UserStateModel.UserState
             )
 
-            combine(feedStateModel.feedState, userStateModel.userState) { feedState, userState -> Update(feedState, userState) }.collect { update ->
+            combine(feedStateModel.feedState, userStateModel.userState) { feedState, userState ->
+                Update(
+                    feedState,
+                    userState
+                )
+            }.collect { update ->
                 logger.debug { "Apply update: $update" }
 
                 update.feedState.errorConsumable?.consume { error ->
@@ -381,7 +389,12 @@ class FeedFragment : BaseFragment("FeedFragment", R.layout.fragment_feed), Filte
                     val msg = buildString {
                         append(getString(R.string.could_not_load_feed_content_type, feedState.missingContentType.name))
                         append(" ")
-                        append(getString(R.string.could_not_load_feed_content_type__signin, feedState.missingContentType.name))
+                        append(
+                            getString(
+                                R.string.could_not_load_feed_content_type__signin,
+                                feedState.missingContentType.name
+                            )
+                        )
                     }
 
                     entries += FeedAdapter.Entry.Error(msg)
@@ -660,8 +673,8 @@ class FeedFragment : BaseFragment("FeedFragment", R.layout.fragment_feed), Filte
 
     private fun replaceFeedFilter(feedFilter: FeedFilter? = null, item: Long? = null) {
         val startAtItemId = item
-                ?: autoScrollRef?.ref?.itemId
-                ?: findLastVisibleFeedItem(userService.selectedContentType)?.id
+            ?: autoScrollRef?.ref?.itemId
+            ?: findLastVisibleFeedItem(userService.selectedContentType)?.id
 
         if (autoScrollRef == null) {
             autoScrollRef = startAtItemId?.let { id -> ScrollRef(CommentRef(id)) }
@@ -670,8 +683,8 @@ class FeedFragment : BaseFragment("FeedFragment", R.layout.fragment_feed), Filte
         // this clears the current feed immediately
         val filter = feedFilter ?: feed.filter
         feedStateModel.restart(
-                feed = Feed(filter, userService.selectedContentType),
-                aroundItemId = startAtItemId
+            feed = Feed(filter, userService.selectedContentType),
+            aroundItemId = startAtItemId
         )
 
         activity?.invalidateOptionsMenu()
@@ -683,7 +696,8 @@ class FeedFragment : BaseFragment("FeedFragment", R.layout.fragment_feed), Filte
      * @param contentType The target-content type.
      */
     private fun findLastVisibleFeedItem(
-            contentType: Set<ContentType> = ContentType.AllSet): FeedItem? {
+        contentType: Set<ContentType> = ContentType.AllSet
+    ): FeedItem? {
 
         // if we don't have a view, there wont be a visible item either.
         if (view == null || feedAdapter.items.isEmpty()) {
@@ -705,8 +719,8 @@ class FeedFragment : BaseFragment("FeedFragment", R.layout.fragment_feed), Filte
 
             val idx = lastCompletelyVisible.coerceIn(items.indices)
             items.take(idx)
-                    .mapNotNull { item -> (item as? FeedAdapter.Entry.Item)?.item }
-                    .lastOrNull { contentType.contains(it.contentType) }
+                .mapNotNull { item -> (item as? FeedAdapter.Entry.Item)?.item }
+                .lastOrNull { contentType.contains(it.contentType) }
         }
     }
 
@@ -751,15 +765,18 @@ class FeedFragment : BaseFragment("FeedFragment", R.layout.fragment_feed), Filte
         menu.findItem(R.id.action_feedtype)?.let { item ->
             item.isVisible = !filter.isBasic && isNormalMode
 
-            item.setTitle(if (switchFeedTypeTarget(filter) === FeedType.PROMOTED)
-                R.string.action_switch_to_top else R.string.action_switch_to_new)
+            item.setTitle(
+                if (switchFeedTypeTarget(filter) === FeedType.PROMOTED)
+                    R.string.action_switch_to_top else R.string.action_switch_to_new
+            )
         }
 
         menu.findItem(R.id.action_change_content_type__not_verified)?.let { item ->
             item.isVisible = userService.isAuthorized && !userService.userIsVerified
             item.icon = ContentTypeDrawable(activity, listOf(SFW)).also { icon ->
                 icon.textSize = resources.getDimensionPixelSize(
-                        R.dimen.feed_content_type_action_icon_text_size).toFloat()
+                    R.dimen.feed_content_type_action_icon_text_size
+                ).toFloat()
             }
         }
 
@@ -767,7 +784,8 @@ class FeedFragment : BaseFragment("FeedFragment", R.layout.fragment_feed), Filte
             if (userService.userIsVerified) {
                 val icon = ContentTypeDrawable(activity, selectedContentType)
                 icon.textSize = resources.getDimensionPixelSize(
-                        R.dimen.feed_content_type_action_icon_text_size).toFloat()
+                    R.dimen.feed_content_type_action_icon_text_size
+                ).toFloat()
 
                 item.icon = icon
                 item.isVisible = true
@@ -796,9 +814,11 @@ class FeedFragment : BaseFragment("FeedFragment", R.layout.fragment_feed), Filte
         val single = withoutImplicits.size == 1
 
         val types = mapOf(
-                R.id.action_content_type_sfw to Settings.contentTypeSfw,
-                R.id.action_content_type_nsfw to Settings.contentTypeNsfw,
-                R.id.action_content_type_nsfl to Settings.contentTypeNsfl)
+            R.id.action_content_type_sfw to Settings.contentTypeSfw,
+            R.id.action_content_type_nsfw to Settings.contentTypeNsfw,
+            R.id.action_content_type_nsfl to Settings.contentTypeNsfl,
+            R.id.action_content_type_pol to Settings.contentTypePol,
+        )
 
         for ((key, value) in types) {
             menu.findItem(key)?.let { item ->
@@ -810,9 +830,11 @@ class FeedFragment : BaseFragment("FeedFragment", R.layout.fragment_feed), Filte
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         val contentTypes = mapOf(
-                R.id.action_content_type_sfw to "pref_feed_type_sfw",
-                R.id.action_content_type_nsfw to "pref_feed_type_nsfw",
-                R.id.action_content_type_nsfl to "pref_feed_type_nsfl")
+            R.id.action_content_type_sfw to "pref_feed_type_sfw",
+            R.id.action_content_type_nsfw to "pref_feed_type_nsfw",
+            R.id.action_content_type_nsfl to "pref_feed_type_nsfl",
+            R.id.action_content_type_pol to "pref_feed_type_pol",
+        )
 
         if (contentTypes.containsKey(item.itemId)) {
             val newState = !item.isChecked
@@ -1006,9 +1028,9 @@ class FeedFragment : BaseFragment("FeedFragment", R.layout.fragment_feed), Filte
             }
 
             activity.supportFragmentManager.beginTransaction()
-                    .replace(R.id.content_container, fragment)
-                    .addToBackStack(null)
-                    .commit()
+                .replace(R.id.content_container, fragment)
+                .addToBackStack(null)
+                .commit()
 
         } catch (error: Exception) {
             logger.warn("Error while showing post", error)
@@ -1154,14 +1176,14 @@ class FeedFragment : BaseFragment("FeedFragment", R.layout.fragment_feed), Filte
 
             val searchView = views.searchOptions
             views.searchContainer.animate()
-                    .withEndAction { searchView.requestSearchFocus() }
-                    .alpha(1f)
+                .withEndAction { searchView.requestSearchFocus() }
+                .alpha(1f)
 
             searchView.translationY = (-(0.1 * view.height).toInt()).toFloat()
 
             searchView.animate()
-                    .setInterpolator(DecelerateInterpolator())
-                    .translationY(0f)
+                .setInterpolator(DecelerateInterpolator())
+                .translationY(0f)
         } else {
             views.searchContainer.animate().cancel()
             views.searchContainer.alpha = 1f
@@ -1190,8 +1212,8 @@ class FeedFragment : BaseFragment("FeedFragment", R.layout.fragment_feed), Filte
 
         val containerView = this.views.searchContainer
         containerView.animate()
-                .withEndAction { containerView.isVisible = false }
-                .alpha(0f)
+            .withEndAction { containerView.isVisible = false }
+            .alpha(0f)
 
         val height = view?.height ?: 0
         views.searchOptions.animate().translationY((-(0.1 * height).toInt()).toFloat())
@@ -1228,8 +1250,8 @@ class FeedFragment : BaseFragment("FeedFragment", R.layout.fragment_feed), Filte
 
         logger.debug { "Checking if we can scroll to item $itemId" }
         val idx = feedAdapter.items
-                .indexOfFirst { it is FeedAdapter.Entry.Item && it.item.id == itemId }
-                .takeIf { it >= 0 } ?: return
+            .indexOfFirst { it is FeedAdapter.Entry.Item && it.item.id == itemId }
+            .takeIf { it >= 0 } ?: return
 
         logger.debug { "Found item at idx=$idx, will scroll now (smooth=$smoothScroll)" }
 
@@ -1238,10 +1260,14 @@ class FeedFragment : BaseFragment("FeedFragment", R.layout.fragment_feed), Filte
 
             // smooth scroll to the target position
             val context = views.recyclerView.context
-            layoutManager.startSmoothScroll(OverscrollLinearSmoothScroller(context, idx,
+            layoutManager.startSmoothScroll(
+                OverscrollLinearSmoothScroller(
+                    context, idx,
                     dontScrollIfVisible = true,
                     offsetTop = AndroidUtility.getActionBarContentOffset(context) + context.dp(32),
-                    offsetBottom = context.dp(32)))
+                    offsetBottom = context.dp(32)
+                )
+            )
 
         } else {
             // over scroll a bit
@@ -1253,7 +1279,8 @@ class FeedFragment : BaseFragment("FeedFragment", R.layout.fragment_feed), Filte
         return view.tag as? FeedItemViewHolder
     }
 
-    private inner class InternalGridLayoutManager(context: Context, spanCount: Int) : GridLayoutManager(context, spanCount) {
+    private inner class InternalGridLayoutManager(context: Context, spanCount: Int) :
+        GridLayoutManager(context, spanCount) {
         override fun onLayoutCompleted(state: RecyclerView.State?) {
             super.onLayoutCompleted(state)
             performAutoScroll()
@@ -1319,7 +1346,7 @@ class FeedFragment : BaseFragment("FeedFragment", R.layout.fragment_feed), Filte
                 val activity = activity as? ToolbarActivity
                 if (activity != null) {
                     val y = ScrollHideToolbarListener.estimateRecyclerViewScrollY(recyclerView)
-                            ?: Integer.MAX_VALUE
+                        ?: Integer.MAX_VALUE
 
                     activity.scrollHideToolbarListener.onScrollFinished(y)
                 }
@@ -1333,9 +1360,11 @@ class FeedFragment : BaseFragment("FeedFragment", R.layout.fragment_feed), Filte
         private const val ARG_NORMAL_MODE = "FeedFragment.simpleMode"
         private const val ARG_SEARCH_QUERY_STATE = "FeedFragment.searchQueryState"
 
-        fun newInstance(feedFilter: FeedFilter,
-                        start: CommentRef?,
-                        searchQueryState: Bundle?): FeedFragment {
+        fun newInstance(
+            feedFilter: FeedFilter,
+            start: CommentRef?,
+            searchQueryState: Bundle?
+        ): FeedFragment {
 
             return FeedFragment().apply {
                 arguments = bundle {

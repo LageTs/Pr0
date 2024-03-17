@@ -138,7 +138,7 @@ interface Api {
     ): Info
 
     @GET("/api/inbox/pending")
-    suspend fun inboxPending(): Inbox
+    suspend fun inboxPending(): PendingInbox
 
     @GET("/api/inbox/conversations")
     suspend fun listConversations(
@@ -179,6 +179,12 @@ interface Api {
         @Query("older")
         older: Long?
     ): Inbox
+
+    @GET("/api/inbox/digests")
+    suspend fun inboxDigests(
+        @Query("older")
+        older: Long?
+    ): DigestsInbox
 
     @GET("/api/profile/comments")
     suspend fun userComments(
@@ -316,7 +322,6 @@ interface Api {
     @FormUrlEncoded
     @POST("api/contact/send")
     suspend fun contactSend(
-        @Field("faqCategory") faqCategory: String,
         @Field("subject") subject: String,
         @Field("email") email: String,
         @Field("message") message: String,
@@ -647,6 +652,51 @@ interface Api {
     }
 
     @JsonClass(generateAdapter = true)
+    class PendingInbox (
+        val messages: List<Inbox.Item> = listOf(),
+        val digests: List<DigestsInbox.Digest> = listOf(),
+    )
+
+    @JsonClass(generateAdapter = true)
+    class DigestsInbox(val digests: List<Digest> = listOf()) {
+        @JsonClass(generateAdapter = true)
+        class Digest(
+            val id: Long,
+            @Json(name = "created") val creationTime: Instant,
+            val type: String,
+            val pushNotification: DigestPushNotificationData,
+            val message: String,
+            val notice: String?,
+            val items: List<ItemHighlight>,
+            val read: Boolean,
+        )
+
+        @JsonClass(generateAdapter = true)
+        class DigestPushNotificationData(
+            val title: String,
+            val body: String,
+        )
+
+        @JsonClass(generateAdapter = true)
+        class ItemHighlight(
+            val id: Long,
+            val flags: Int,
+            @Json(name = "thumb") val thumbnail: String,
+            val preview: String?,
+            val user: ItemHighlightUser,
+            val up: Int,
+            val down: Int,
+            @Json(name = "created") val creationTime: Instant,
+        )
+
+        @JsonClass(generateAdapter = true)
+        class ItemHighlightUser(
+            val name: String,
+            val mark: Int,
+        )
+    }
+
+    @JsonClass(generateAdapter = true)
     class NewComment(
         val commentId: Long? = null,
         val comments: List<Comment> = listOf()
@@ -724,9 +774,10 @@ interface Api {
         val mentions: Int = 0,
         val notifications: Int = 0,
         val follows: Int = 0,
-        val messages: Int = 0
+        val messages: Int = 0,
+        val digests: Int = 0
     ) {
-        val total: Int get() = comments + mentions + messages + notifications + follows
+        val total: Int get() = comments + mentions + messages + notifications + follows + digests
     }
 
     @JsonClass(generateAdapter = true)

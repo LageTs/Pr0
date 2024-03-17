@@ -9,10 +9,12 @@ import com.pr0gramm.app.databinding.ActivityInboxBinding
 import com.pr0gramm.app.services.InboxService
 import com.pr0gramm.app.services.ThemeHelper
 import com.pr0gramm.app.services.UserService
+import com.pr0gramm.app.services.config.ConfigService
 import com.pr0gramm.app.ui.base.BaseAppCompatActivity
 import com.pr0gramm.app.ui.base.bindViews
 import com.pr0gramm.app.ui.base.launchWhenCreated
 import com.pr0gramm.app.ui.fragments.ConversationsFragment
+import com.pr0gramm.app.ui.fragments.DigestsFragment
 import com.pr0gramm.app.ui.fragments.GenericInboxFragment
 import com.pr0gramm.app.ui.fragments.WrittenCommentsFragment
 import com.pr0gramm.app.util.di.instance
@@ -25,6 +27,7 @@ import com.pr0gramm.app.util.startActivity
 class InboxActivity : BaseAppCompatActivity("InboxActivity") {
     private val userService: UserService by instance()
     private val inboxService: InboxService by instance()
+    private val configService: ConfigService by instance()
 
     private val views by bindViews(ActivityInboxBinding::inflate)
 
@@ -50,13 +53,20 @@ class InboxActivity : BaseAppCompatActivity("InboxActivity") {
 
         tabsAdapter = TabsStateAdapter(this)
 
-        InboxType.values().forEach { type ->
+        val config = configService.config()
+        InboxType.entries.forEach { type ->
             when (type) {
-                InboxType.PRIVATE -> tabsAdapter.addTab(getString(R.string.inbox_type_private), id = InboxType.PRIVATE) {
+                InboxType.PRIVATE -> tabsAdapter.addTab(
+                    getString(R.string.inbox_type_private),
+                    id = InboxType.PRIVATE
+                ) {
                     ConversationsFragment()
                 }
 
-                InboxType.COMMENTS_OUT -> tabsAdapter.addTab(getString(R.string.inbox_type_comments_out), id = InboxType.COMMENTS_OUT) {
+                InboxType.COMMENTS_OUT -> tabsAdapter.addTab(
+                    getString(R.string.inbox_type_comments_out),
+                    id = InboxType.COMMENTS_OUT
+                ) {
                     WrittenCommentsFragment()
                 }
 
@@ -64,7 +74,10 @@ class InboxActivity : BaseAppCompatActivity("InboxActivity") {
                     GenericInboxFragment()
                 }
 
-                InboxType.COMMENTS_IN -> tabsAdapter.addTab(getString(R.string.inbox_type_comments_in), id = InboxType.COMMENTS_IN) {
+                InboxType.COMMENTS_IN -> tabsAdapter.addTab(
+                    getString(R.string.inbox_type_comments_in),
+                    id = InboxType.COMMENTS_IN
+                ) {
                     GenericInboxFragment(GenericInboxFragment.MessageTypeComments)
                 }
 
@@ -72,8 +85,25 @@ class InboxActivity : BaseAppCompatActivity("InboxActivity") {
                     GenericInboxFragment(GenericInboxFragment.MessageTypeStalk)
                 }
 
-                InboxType.NOTIFICATIONS -> tabsAdapter.addTab(getString(R.string.inbox_type_notifications), id = InboxType.NOTIFICATIONS) {
+                InboxType.NOTIFICATIONS -> tabsAdapter.addTab(
+                    getString(R.string.inbox_type_notifications),
+                    id = InboxType.NOTIFICATIONS
+                ) {
                     GenericInboxFragment(GenericInboxFragment.MessageTypeNotifications)
+                }
+
+                InboxType.DIGESTS -> {
+                    val show = config.showDigestsInInbox ||
+                            (userService.userIsAdmin && config.showDigestsInInboxForAdmin)
+
+                    if (show) {
+                        tabsAdapter.addTab(
+                            getString(R.string.inbox_type_digests),
+                            id = InboxType.DIGESTS
+                        ) {
+                            DigestsFragment()
+                        }
+                    }
                 }
             }
         }
@@ -108,9 +138,15 @@ class InboxActivity : BaseAppCompatActivity("InboxActivity") {
 
                 tabsAdapter.updateTabTitle(InboxType.ALL, titleOf(R.string.inbox_type_all, counts.total))
                 tabsAdapter.updateTabTitle(InboxType.PRIVATE, titleOf(R.string.inbox_type_private, counts.messages))
-                tabsAdapter.updateTabTitle(InboxType.NOTIFICATIONS, titleOf(R.string.inbox_type_notifications, counts.notifications))
+                tabsAdapter.updateTabTitle(
+                    InboxType.NOTIFICATIONS,
+                    titleOf(R.string.inbox_type_notifications, counts.notifications)
+                )
                 tabsAdapter.updateTabTitle(InboxType.STALK, titleOf(R.string.inbox_type_stalk, counts.follows))
-                tabsAdapter.updateTabTitle(InboxType.COMMENTS_IN, titleOf(R.string.inbox_type_comments_in, counts.comments))
+                tabsAdapter.updateTabTitle(
+                    InboxType.COMMENTS_IN,
+                    titleOf(R.string.inbox_type_comments_in, counts.comments)
+                )
             }
         }
     }
@@ -137,7 +173,7 @@ class InboxActivity : BaseAppCompatActivity("InboxActivity") {
 
     private fun handleNewIntent(intent: Intent?) {
         val extras = intent?.extras ?: return
-        showInboxType(InboxType.values()[extras.getInt(EXTRA_INBOX_TYPE, 0)])
+        showInboxType(InboxType.entries[extras.getInt(EXTRA_INBOX_TYPE, 0)])
     }
 
     private fun showInboxType(type: InboxType?) {

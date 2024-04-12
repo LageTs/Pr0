@@ -59,8 +59,6 @@ open class ApplicationClass : Application(), InjectorAware {
     override fun onCreate() = logger.time("onCreate") {
         super.onCreate()
 
-        Stats.init(buildVersionCode())
-
         Settings.initialize(this)
 
         logger.time("Initializing WorkManager") {
@@ -92,8 +90,6 @@ open class ApplicationClass : Application(), InjectorAware {
         }
 
         logger.info { "App booted in $bootupWatch" }
-
-        Stats().histogram("app.boot.time", bootupWatch.elapsed().inMillis)
     }
 
     private val lifecycleCallbacksLookup = WeakHashMap<ActivityLifecycleCallbacks, CatchingActivityLifecycleCallbacks>()

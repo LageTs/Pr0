@@ -226,8 +226,6 @@ class FeedFragment : BaseFragment("FeedFragment", R.layout.fragment_feed), Filte
             spanSizeLookup = feedAdapter.SpanSizeLookup(spanCount)
         }
 
-        activity.configureRecyclerView("Feed", views.recyclerView)
-
         views.recyclerView.addOnScrollListener(onScrollListener)
 
         // we can still swipe up if we are not at the start of the feed.

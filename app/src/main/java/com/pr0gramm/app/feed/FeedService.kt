@@ -2,7 +2,6 @@ package com.pr0gramm.app.feed
 
 import com.pr0gramm.app.Instant
 import com.pr0gramm.app.Logger
-import com.pr0gramm.app.Stats
 import com.pr0gramm.app.TimeFactory
 import com.pr0gramm.app.api.pr0gramm.Api
 import com.pr0gramm.app.db.FeedItemInfoQueries
@@ -16,7 +15,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.runInterruptible
-import java.util.Locale
 
 /**
  * Performs the actual request to get the items for a feed.
@@ -70,12 +68,6 @@ class FeedServiceImpl(
         val flags = ContentType.combine(query.contentTypes)
 
         val feedType = feedFilter.feedType
-
-        // statistics
-        Stats().incrementCounter(
-            "feed.loaded",
-            "type:" + feedType.name.lowercase(Locale.ROOT)
-        )
 
         val tags = feedFilter.tags?.replaceFirst("^\\s*\\?\\s*".toRegex(), "!")
 

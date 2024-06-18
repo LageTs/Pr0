@@ -18,8 +18,7 @@ object Affiliate {
 
     fun get(context: Context, url: String): String? {
         return if (reAffiliate(context).containsMatchIn(url)) {
-            val encoded = Base64.encodeToString(url.toByteArray(), Base64.URL_SAFE)
-            return "https://app.pr0gramm.com/redirect.html?u=$encoded"
+            return url
         } else {
             null
         }

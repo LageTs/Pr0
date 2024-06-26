@@ -308,6 +308,12 @@
                     android:summary="@string/pref_rotate_vote_view_summary"
                     android:title="@string/pref_rotate_vote_view_title" />
 
+                <SwitchPreferenceCompat
+                    android:defaultValue="false"
+                    android:key="pref_video_controls_grayed"
+                    android:summary="@string/pref_video_controls_grayed_summary"
+                    android:title="@string/pref_video_controls_grayed_title" />
+
             </PreferenceCategory>
         </PreferenceScreen>
 

@@ -202,6 +202,10 @@ object Settings : SharedPreferences.OnSharedPreferenceChangeListener {
     val videoQuality: VideoQuality
         get() = preferences.getEnumValue("pref_video_quality_list", VideoQuality.Adaptive)
 
+    var videoControlsGrayed: Boolean
+        get() = preferences.getBoolean("pref_video_controls_grayed", false)
+        set(value) = edit { putBoolean("pref_video_controls_grayed", value) }
+
     val privateInput: Boolean
         get() = preferences.getBoolean("pref_private_input", false)
 

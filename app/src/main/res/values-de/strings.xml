@@ -596,4 +596,7 @@
 
     <string name="user_validate_success">Dein Alter wurde verifiziert</string>
     <string name="user_validate_failed">Ungültiges Token.</string>
+
+    <string name="pref_video_controls_grayed_summary">Leicht grauen Hintergrund hinter die Videobedienelemente legen.</string>
+    <string name="pref_video_controls_grayed_title">Videobedinelemente hervorheben</string>
 </resources>

@@ -60,7 +60,7 @@ class FeedViewModel(
     private val preloadManager: PreloadManager,
     private val itemQueries: FeedItemInfoQueries,
 ) : ViewModel() {
-
+    private var hasRepostsInApi: Boolean= false
     private val logger = Logger("FeedViewModel")
 
     val feedState = MutableStateFlow(
@@ -349,6 +349,18 @@ class FeedViewModel(
     private suspend fun refreshRepostInfos(old: Feed, new: Feed) {
         trace { "refreshRepostInfos" }
 
+        // check if the api gave us repost information
+        if (hasRepostsInApi || new.items.any { item -> item.repostApi }) {
+            inMemoryCacheService.cacheReposts(
+                new.items.asSequence()
+                    .filter { item -> item.repostApi }
+                    .map { item -> item.id }
+                    .toList())
+
+            hasRepostsInApi = true;
+            return
+        }
+
         val filter = new.filter
         if (filter.feedType !== FeedType.NEW && filter.feedType !== FeedType.PROMOTED)
             return
@@ -520,6 +532,7 @@ private fun CachedItemInfo.toFeedItem(
         deleted = deleted,
         variants = mappedVariants,
         subtitles = mappedSubtitles,
+        repostApi = false, // TODO serialize into CachedItem
         placeholder = false,
     )
 }

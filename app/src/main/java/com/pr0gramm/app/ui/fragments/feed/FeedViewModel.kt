@@ -60,7 +60,7 @@ class FeedViewModel(
         private val preloadManager: PreloadManager,
         private val itemQueries: FeedItemInfoQueries,
 ) : ViewModel() {
-
+    private var hasRepostsInApi: Boolean= false
     private val logger = Logger("FeedViewModel")
 
     val feedState = MutableStateFlow(
@@ -109,7 +109,8 @@ class FeedViewModel(
     private suspend fun observeSeenService() {
         seenService.currentGeneration.collect {
             feedState.update { previousState ->
-                val seen = previousState.feed.map { it.id }.filterTo(HashSet()) { id -> seenService.isSeen(id) }
+                val seen = previousState.feed.map { it.id }
+                    .filterTo(HashSet()) { id -> seenService.isSeen(id) }
                 previousState.copy(seen = seen)
             }
         }
@@ -168,7 +169,8 @@ class FeedViewModel(
 
                         previousState.copy(
                             feed = feed,
-                            seen = feed.filter { item -> seenService.isSeen(item.id) }.mapTo(HashSet()) { it.id },
+                            seen = feed.filter { item -> seenService.isSeen(item.id) }
+                                .mapTo(HashSet()) { it.id },
                             empty = update.remote && feed.isEmpty(),
                             highlightedItemIds = highlightedItemIds,
                             autoScrollRef = autoScrollRef,
@@ -347,6 +349,18 @@ class FeedViewModel(
     private suspend fun refreshRepostInfos(old: Feed, new: Feed) {
         trace { "refreshRepostInfos" }
 
+        // check if the api gave us repost information
+        if (hasRepostsInApi || new.items.any { item -> item.repostApi }) {
+            inMemoryCacheService.cacheReposts(
+                new.items.asSequence()
+                    .filter { item -> item.repostApi }
+                    .map { item -> item.id }
+                    .toList())
+
+            hasRepostsInApi = true;
+            return
+        }
+
         val filter = new.filter
         if (filter.feedType !== FeedType.NEW && filter.feedType !== FeedType.PROMOTED)
             return
@@ -430,7 +444,10 @@ class FeedViewModel(
 
                     feedState.feed.size > 4000 -> {
                         // no result within the first few pages
-                        throw StringException("max scroll distance reached", R.string.error_max_scroll_reached)
+                        throw StringException(
+                            "max scroll distance reached",
+                            R.string.error_max_scroll_reached
+                        )
                     }
 
                     targetItem != null -> {
@@ -476,7 +493,9 @@ class FeedViewModel(
         val repostRefreshTime: Long = 0,
         val adsVisible: Boolean = false,
         val markItemsAsSeen: Boolean = Settings.markItemsAsSeen,
-        val preloadedItemIds: LongSparseArray<PreloadManager.PreloadItem> = LongSparseArray(initialCapacity = 0),
+        val preloadedItemIds: LongSparseArray<PreloadManager.PreloadItem> = LongSparseArray(
+            initialCapacity = 0
+        ),
         val autoScrollRef: ConsumableValue<ScrollRef>? = null,
         val highlightedItemIds: Set<Long> = setOf(),
         val cachedItemsById: Map<Long, FeedItem>? = null,
@@ -486,9 +505,13 @@ class FeedViewModel(
     }
 }
 
-private fun CachedItemInfo.toFeedItem(variants: List<CachedMediaVariant>, subtitles: List<CachedSubtitle>): FeedItem {
+private fun CachedItemInfo.toFeedItem(
+    variants: List<CachedMediaVariant>,
+    subtitles: List<CachedSubtitle>
+): FeedItem {
     val mappedVariants = variants.map { v -> Api.Feed.Variant(name = v.name, path = v.path) }
-    val mappedSubtitles = subtitles.map { s -> Api.Feed.Subtitle(language = s.language, path = s.path) }
+    val mappedSubtitles =
+        subtitles.map { s -> Api.Feed.Subtitle(language = s.language, path = s.path) }
 
     return FeedItem(
         id = id,
@@ -509,6 +532,7 @@ private fun CachedItemInfo.toFeedItem(variants: List<CachedMediaVariant>, subtit
         deleted = deleted,
         variants = mappedVariants,
         subtitles = mappedSubtitles,
+        repostApi = false, // TODO serialize into CachedItem
         placeholder = false,
     )
 }

@@ -3,7 +3,7 @@
     <string name="action_add_tag">Add</string>
     <string name="action_collections">Collections</string>
     <string name="action_feed_type_new">New</string>
-    <string name="action_feed_type_promoted">Top</string>
+    <string name="action_feed_type_promoted">Popular</string>
     <string name="action_search">Search in %s…</string>
     <string name="action_search_simple">Search</string>
     <string name="action_upload">Upload</string>
@@ -26,7 +26,7 @@
     <string name="error_nullpointer">A programming error occurred. I am very sorry.</string>
     <string name="error_oom">The app ran of memory. This might be your old smartphone or a bug in the app.</string>
     <string name="error_timeout">A timeout occurred during a network request.</string>
-    <string name="error_service_unavailable">Looks like pr0gramm is not available right now. Please check https://nitter.net/pr0gramm if this error persists.</string>
+    <string name="error_service_unavailable">Looks like pr0gramm is not available right now. Please check https://twitter.com/pr0gramm if this error persists.</string>
     <string name="hint_password">Password</string>
     <string name="hint_username">Your username</string>
     <string name="login">Login</string>
@@ -617,6 +617,7 @@
     <string name="collection_x_of_user">%s of %s</string>
     <string name="pref_video_quality_values_summary">Adaptive reduces the data usage on mobile networks.</string>
     <string name="pref_video_quality_values_title">Video quality</string>
+    <string name="action_feed_type_junk">Junk</string>
     <string name="pref_video_controls_grayed_summary">Add gray background to video controls.</string>
     <string name="pref_video_controls_grayed_title">Controls background</string>
     <string name="pref_remove_seen_items_summary">Remove seen images from the feed. Images can still be opened by link but not found be search anymore.</string>

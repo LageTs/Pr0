@@ -83,7 +83,11 @@ class FeedFilter : DefaultParcelable {
         return basicWithCollection(owner, "**ANY", "**ANY")
     }
 
-    fun basicWithCollection(owner: String, collectionKey: String, collectionTitle: String): FeedFilter {
+    fun basicWithCollection(
+        owner: String,
+        collectionKey: String,
+        collectionTitle: String
+    ): FeedFilter {
         val copy = basic()
         copy.username = normalizeString(owner)
         copy.collection = normalizeString(collectionKey)
@@ -144,15 +148,16 @@ class FeedFilter : DefaultParcelable {
                 && feedType === other.feedType
                 && tags == other.tags
                 && username == other.username
-                && collection == other.collection)
+                && collection == other.collection
+                )
     }
 
     override fun toString(): String {
         val fields = listOfNotNull(
-                feedType.toString(),
-                tags?.let { "tags=$tags" },
-                username?.let { "username=$username" },
-                collection?.let { "collection=$collection" }
+            feedType.toString(),
+            tags?.let { "tags=$tags" },
+            username?.let { "username=$username" },
+            collection?.let { "collection=$collection" },
         )
 
         return "FeedFilter(${fields.joinToString(", ")})"

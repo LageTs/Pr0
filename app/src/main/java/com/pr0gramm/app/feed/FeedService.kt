@@ -94,13 +94,21 @@ class FeedServiceImpl(
                     Tags.joinAnd("s:700 f:nsfw", feedFilter.tags),
                 )
 
-                load(query.copy(filter = feedFilter.withFeedType(FeedType.NEW).basicWithTags(tagsQuery)))
+                load(
+                    query.copy(
+                        filter = feedFilter.withFeedType(FeedType.NEW).basicWithTags(tagsQuery)
+                    )
+                )
             }
 
             FeedType.CONTROVERSIAL -> {
                 // just add the f:controversial flag to the query
                 val tagsQuery = Tags.joinAnd("!f:controversial", feedFilter.tags)
-                load(query.copy(filter = feedFilter.withFeedType(FeedType.NEW).basicWithTags(tagsQuery)))
+                load(
+                    query.copy(
+                        filter = feedFilter.withFeedType(FeedType.NEW).basicWithTags(tagsQuery)
+                    )
+                )
             }
 
             else -> {
@@ -115,10 +123,19 @@ class FeedServiceImpl(
                     .takeIf { self -> self }
 
                 // do the normal query as is.
+                val showJunk = when (feedType) {
+                    FeedType.JUNK -> true
+                    FeedType.NEW -> false
+                    FeedType.PROMOTED -> false
+
+                    // don't set show_junk for any other category
+                    else -> null
+                }
                 val result = api.itemsGet(
                     promoted, following,
                     query.older, query.newer, query.around,
-                    flags, tags, collection, self, user
+                    flags, tags, collection, self, user,
+                    showJunk = showJunk
                 )
 
                 result.also {

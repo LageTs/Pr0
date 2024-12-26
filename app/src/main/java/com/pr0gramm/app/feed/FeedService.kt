@@ -3,7 +3,6 @@ package com.pr0gramm.app.feed
 import com.pr0gramm.app.Instant
 import com.pr0gramm.app.Logger
 import com.pr0gramm.app.Settings
-import com.pr0gramm.app.Stats
 import com.pr0gramm.app.TimeFactory
 import com.pr0gramm.app.api.pr0gramm.Api
 import com.pr0gramm.app.db.FeedItemInfoQueries
@@ -71,12 +70,6 @@ class FeedServiceImpl(
         val flags = ContentType.combine(query.contentTypes)
 
         val feedType = feedFilter.feedType
-
-        // statistics
-        Stats().incrementCounter(
-            "feed.loaded",
-            "type:" + feedType.name.lowercase(Locale.ROOT)
-        )
 
         val tags = feedFilter.tags?.replaceFirst("^\\s*\\?\\s*".toRegex(), "!")
 

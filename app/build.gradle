@@ -17,7 +17,7 @@ android {
 
     defaultConfig {
         minSdkVersion 21
-        targetSdkVersion 31
+        targetSdkVersion 34
         applicationId "com.pr0gramm.app"
 
         versionCode appVersion

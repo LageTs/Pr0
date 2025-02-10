@@ -607,4 +607,10 @@
     <string name="pref_video_controls_grayed_title">Videobedinelemente hervorheben</string>
     <string name="pref_remove_seen_items_summary">Entferne gesehene Post aus dem Feed. Posts sind weiterhin per Link aufrufbar, nicht jedoch über die Suche. ACHTUNG: instabil!</string>
     <string name="remove_seen_items_title">Gesehene Posts ausblenden</string>
+    <string name="pref_pseudo_language_title">Sprache</string>
+    <string name="pref_pseudo_language_summary">Ändere die Sprache der App unabhängig deiner Systemsprache</string>
+    <string name="language_picker_title">Sprache wählen</string>
+    <string name="language_picker_subtitle">Bitte wähle eine der verfügbaren Sprachen.</string>
+    <string name="language_picker_dismiss">Abbrechen</string>
+    <string name="language_picker_confirm">Bestätigen</string>
 </resources>

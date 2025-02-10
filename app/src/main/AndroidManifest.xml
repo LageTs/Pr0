@@ -3,7 +3,6 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.INTERNET" />
-    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
@@ -40,6 +39,7 @@
         android:roundIcon="@mipmap/ic_roundapp"
         android:supportsRtl="false"
         android:theme="@style/AppTheme.Orange.NoActionBar"
+        android:localeConfig="@xml/locales_config"
         tools:replace="android:allowBackup,android:supportsRtl">
 
         <uses-library
@@ -88,6 +88,17 @@
                 android:name="androidx.work.WorkManagerInitializer"
                 tools:node="remove" />
         </provider>
+
+        <!-- Add support for per-app language below Android 12 (API 32) -->
+        <!-- This can lead to violations in StrictMode (see docs) -->
+        <service
+            android:name="androidx.appcompat.app.AppLocalesMetadataHolderService"
+            android:enabled="false"
+            android:exported="false">
+            <meta-data
+                android:name="autoStoreLocales"
+                android:value="true" />
+        </service>
 
         <activity
             android:name=".ui.MainActivity"

@@ -3,6 +3,8 @@ apply plugin: 'kotlin-android'
 
 apply from: 'version.gradle'
 
+import org.gradle.internal.os.OperatingSystem
+
 buildscript {
     repositories {
         mavenCentral()
@@ -17,7 +19,7 @@ android {
 
     defaultConfig {
         minSdkVersion 21
-        targetSdkVersion 34
+        targetSdkVersion 31
         applicationId "com.pr0gramm.app"
 
         versionCode appVersion
@@ -52,6 +54,11 @@ android {
     buildFeatures {
         viewBinding true
         buildConfig true
+        compose true
+    }
+
+    composeOptions {
+        kotlinCompilerExtensionVersion = "1.5.13"
     }
 
     buildTypes {
@@ -124,7 +131,10 @@ android.applicationVariants.configureEach { variant ->
                 def output = new ByteArrayOutputStream()
 
                 exec {
-                    commandLine("unzip", "-t", pathToApk)
+                    if (OperatingSystem.current() == OperatingSystem.WINDOWS)
+                        commandLine("tar", "-tf", pathToApk)
+                    else
+                        commandLine("unzip", "-t", pathToApk)
                     standardOutput output
                 }
 
@@ -180,6 +190,14 @@ dependencies {
     implementation 'androidx.core:core-ktx:1.12.0'
 
     implementation 'androidx.fragment:fragment-ktx:1.6.2'
+
+    // Compose
+    def composeBom = platform('androidx.compose:compose-bom:2025.01.00')
+    implementation composeBom
+    implementation 'androidx.compose.material:material'
+    // Preview support
+    implementation 'androidx.compose.ui:ui-tooling-preview'
+    debugImplementation 'androidx.compose.ui:ui-tooling'
 
     implementation "com.squareup.retrofit2:retrofit:2.11.0"
     implementation("com.squareup.retrofit2:converter-moshi:2.11.0")

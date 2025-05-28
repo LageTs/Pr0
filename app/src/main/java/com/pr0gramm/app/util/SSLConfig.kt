@@ -3,9 +3,6 @@ package com.pr0gramm.app.util
 import android.annotation.SuppressLint
 import android.app.Application
 import android.os.Build
-import com.google.android.gms.common.ConnectionResult
-import com.google.android.gms.common.GoogleApiAvailabilityLight
-import com.google.android.gms.security.ProviderInstaller
 import com.pr0gramm.app.Logger
 import com.pr0gramm.app.time
 import okhttp3.OkHttpClient
@@ -56,28 +53,6 @@ fun OkHttpClient.Builder.configureSSLSocketFactoryAndSecurity(app: Application):
 }
 
 private fun installGmsTrustCertificates(app: Application, logger: Logger): Boolean {
-    when (GoogleApiAvailabilityLight.getInstance().isGooglePlayServicesAvailable(app, 11925000)) {
-        ConnectionResult.SUCCESS -> {
-            logger.info { "Found google services, installing SSL security provider" }
-
-            try {
-                logger.time("Trying to install security provider") {
-                    ProviderInstaller.installIfNeeded(app)
-                }
-
-                logger.info { "SSL security provider installed" }
-                return true
-
-            } catch (err: Throwable) {
-                logger.warn(err) { "Could not install SSL security provider" }
-            }
-        }
-
-        ConnectionResult.SERVICE_VERSION_UPDATE_REQUIRED -> {
-            logger.warn { "Google services are too old." }
-        }
-    }
-
     return false
 }
 

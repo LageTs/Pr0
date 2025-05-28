@@ -408,7 +408,6 @@ inline fun catchAll(block: () -> Unit) {
         throw err
 
     } catch (err: Throwable) {
-        AndroidUtility.logToCrashlytics(err)
     }
 }
 
@@ -655,7 +654,6 @@ suspend fun runEvery(period: Duration, initial: Duration = Duration.Zero, task: 
         try {
             task()
         } catch (err: Exception) {
-            AndroidUtility.logToCrashlytics(err)
         }
 
         delay(period)

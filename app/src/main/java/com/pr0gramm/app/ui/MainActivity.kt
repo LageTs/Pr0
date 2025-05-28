@@ -28,17 +28,12 @@ import androidx.fragment.app.DialogFragment
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentManager
 import com.google.android.material.snackbar.Snackbar
-import com.google.android.ump.ConsentInformation
-import com.google.android.ump.ConsentRequestParameters
-import com.google.android.ump.FormError
-import com.google.android.ump.UserMessagingPlatform
 import com.pr0gramm.app.*
 import com.pr0gramm.app.Duration.Companion.seconds
 import com.pr0gramm.app.api.pr0gramm.MessageType
 import com.pr0gramm.app.databinding.ActivityMainBinding
 import com.pr0gramm.app.feed.FeedFilter
 import com.pr0gramm.app.feed.FeedType
-import com.pr0gramm.app.model.config.Config
 import com.pr0gramm.app.model.info.InfoMessage
 import com.pr0gramm.app.orm.bookmarkOf
 import com.pr0gramm.app.parcel.getParcelableOrNull
@@ -51,7 +46,6 @@ import com.pr0gramm.app.ui.dialogs.UpdateDialogFragment
 import com.pr0gramm.app.ui.fragments.CommentRef
 import com.pr0gramm.app.ui.fragments.DrawerFragment
 import com.pr0gramm.app.ui.fragments.favorites.CollectionsFragment
-import com.pr0gramm.app.ui.fragments.feed.AdViewAdapter
 import com.pr0gramm.app.ui.fragments.feed.FeedFragment
 import com.pr0gramm.app.ui.intro.IntroActivity
 import com.pr0gramm.app.util.*
@@ -72,7 +66,6 @@ class MainActivity : BaseAppCompatActivity("MainActivity"),
     PermissionHelperActivity,
     RecyclerViewPoolProvider by RecyclerViewPoolMap() {
 
-    private var consentInfo: ConsentInformation? = null
     private val handler = Handler(Looper.getMainLooper())
     private var permissionHelper = PermissionHelperDelegate(this)
 
@@ -83,7 +76,6 @@ class MainActivity : BaseAppCompatActivity("MainActivity"),
     private val bookmarkService: BookmarkService by instance()
     private val singleShotService: SingleShotService by instance()
     private val infoMessageService: InfoMessageService by instance()
-    private val adService: AdService by instance()
     private val validationService: ValidationService by instance()
 
     private lateinit var drawerToggle: ActionBarDrawerToggle
@@ -91,8 +83,6 @@ class MainActivity : BaseAppCompatActivity("MainActivity"),
     private var startedWithIntent = false
 
     override var scrollHideToolbarListener: ScrollHideToolbarListener by Delegates.notNull()
-
-    val adViewAdapter = AdViewAdapter()
 
     public override fun onCreate(savedInstanceState: Bundle?) {
         setTheme(ThemeHelper.theme.translucentStatus)
@@ -183,103 +173,6 @@ class MainActivity : BaseAppCompatActivity("MainActivity"),
                 invalidateRecyclerViewPool()
             }
         }
-
-        askConsent()
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            // TODO better move this into the onboarding activity?
-            askNotificationPermission()
-        }
-    }
-
-    @RequiresApi(Build.VERSION_CODES.TIRAMISU)
-    fun askNotificationPermission() {
-        // Register the permissions callback, which handles the user's response to the
-        // system permissions dialog. Save the return value, an instance of
-        // ActivityResultLauncher. You can use either a val, as shown in this snippet,
-        // or a lateinit var in your onAttach() or onCreate() method.
-        val requestPermissionLauncher =
-            registerForActivityResult(RequestPermission()) { isGranted: Boolean ->
-                if (isGranted) {
-                    // Permission is granted. Continue the action or workflow in your
-                    // app.
-                    logger.info { "Some permission was granted." }
-                } else {
-                    // Explain to the user that the feature is unavailable because the
-                    // feature requires a permission that the user has denied. At the
-                    // same time, respect the user's decision. Don't link to system
-                    // settings in an effort to convince the user to change their
-                    // decision.
-                    logger.info { "Some permission was not granted" }
-                }
-            }
-
-        when {
-            ContextCompat.checkSelfPermission(
-                this,
-                Manifest.permission.POST_NOTIFICATIONS
-            ) == PackageManager.PERMISSION_GRANTED -> {
-                logger.info { "We have notification permission" }
-                // You can use the API that requires the permission.
-            }
-
-            ActivityCompat.shouldShowRequestPermissionRationale(
-                this, Manifest.permission.POST_NOTIFICATIONS
-            ) -> {
-                requestPermissionLauncher.launch(
-                    Manifest.permission.POST_NOTIFICATIONS
-                )
-            }
-
-            else -> {
-                // You can directly ask for the permission.
-                // The registered ActivityResultCallback gets the result of this request.
-                requestPermissionLauncher.launch(
-                    Manifest.permission.POST_NOTIFICATIONS
-                )
-            }
-        }
-    }
-
-    private fun askConsent() {
-        val params = ConsentRequestParameters.Builder()
-            .setTagForUnderAgeOfConsent(false)
-            .build()
-
-        consentInfo = UserMessagingPlatform.getConsentInformation(this).also { consentInfo ->
-            consentInfo.requestConsentInfoUpdate(
-                this,
-                params,
-                this::onConsentInfoUpdateSuccess,
-                this::onConsentInfoUpdateFailure
-            )
-        }
-
-        // try to initialize mobile adds in parallel, we might already have
-        // consent from a previous form
-        initializeMobileAdsSdk()
-    }
-
-    private fun onConsentInfoUpdateSuccess() {
-        UserMessagingPlatform.loadAndShowConsentFormIfRequired(this) { err ->
-            if (err != null) {
-                logger.warn { "Failed to get consent: $err" }
-                return@loadAndShowConsentFormIfRequired
-            }
-
-            // we have consent, try to initialize mobile sdk
-            initializeMobileAdsSdk()
-        }
-    }
-
-    private fun onConsentInfoUpdateFailure(err: FormError) {
-        logger.warn { "Failed to update consent form: $err" }
-    }
-
-    private fun initializeMobileAdsSdk() {
-        launchWhenCreated {
-            AdService.initializeMobileAds(this@MainActivity)
-        }
     }
 
     private fun buildDrawerArrowDrawable(): DrawerArrowDrawable {
@@ -322,33 +215,6 @@ class MainActivity : BaseAppCompatActivity("MainActivity"),
         return !userService.userIsPremium && singleShotService.firstTimeToday("hint_ads_pr0mium:5")
     }
 
-    private fun showBuyPremiumHint() {
-        launchWhenStarted {
-            val adsEnabledFlow = merge(
-                adService.enabledForType(Config.AdType.FEED).take(1),
-                adService.enabledForType(Config.AdType.FEED_TO_POST_INTERSTITIAL).take(1)
-            )
-
-            val showAnyAds = adsEnabledFlow
-                .onEach { logger.info { "should show ads: $it" } }
-                .firstOrNull { it } ?: false
-
-            if (!userService.userIsPremium && showAnyAds) {
-                Snackbar.make(views.contentContainer, R.string.hint_dont_like_ads, 5_000).apply {
-                    configureNewStyle()
-
-                    setAction("pr0mium") {
-                        Track.registerLinkClicked()
-                        val uri = Uri.parse("https://pr0gramm.com/pr0mium/iap?iap=true")
-                        BrowserHelper.openCustomTab(this@MainActivity, uri)
-                    }
-
-                    show()
-                }
-            }
-        }
-    }
-
     override fun hintBookmarksEditableWithPremium() {
         views.drawerLayout.closeDrawers()
 
@@ -356,7 +222,6 @@ class MainActivity : BaseAppCompatActivity("MainActivity"),
             configureNewStyle()
 
             setAction("pr0mium") {
-                Track.registerLinkClicked()
                 val uri = Uri.parse("https://pr0gramm.com/pr0mium/iap?iap=true")
                 BrowserHelper.openCustomTab(this@MainActivity, uri)
             }
@@ -404,8 +269,6 @@ class MainActivity : BaseAppCompatActivity("MainActivity"),
 
     override fun onDestroy() {
         supportFragmentManager.removeOnBackStackChangedListener(this)
-
-        adViewAdapter.destroy()
 
         try {
             super.onDestroy()
@@ -590,10 +453,6 @@ class MainActivity : BaseAppCompatActivity("MainActivity"),
                 updateCheckDelay = true
             }
 
-            shouldShowBuyPremiumHint() -> {
-                showBuyPremiumHint()
-            }
-
             Build.VERSION.SDK_INT <= configService.config().endOfLifeAndroidVersion && singleShotService.firstTimeToday(
                 "endOfLifeAndroidVersionHint"
             ) -> {
@@ -619,8 +478,6 @@ class MainActivity : BaseAppCompatActivity("MainActivity"),
 
     override fun onLogoutClicked() {
         views.drawerLayout.closeDrawers()
-
-        Track.logout()
 
         launchWhenStarted(busyIndicator = true) {
             userService.logout()
@@ -758,11 +615,6 @@ class MainActivity : BaseAppCompatActivity("MainActivity"),
                 FragmentManager.POP_BACK_STACK_INCLUSIVE
             )
         } catch (err: Exception) {
-            AndroidUtility.logToCrashlytics(
-                RuntimeException(
-                    "Ignoring exception from popBackStackImmediate:", err
-                )
-            )
         }
     }
 

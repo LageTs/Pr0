@@ -48,11 +48,9 @@ class UpdateChecker {
 
     private val endpoints: List<String> = mutableListOf<String>().also { urls ->
         if (Settings.useBetaChannel) {
-            urls += "https://app.pr0gramm.com/updates/beta/update.json"
-            urls += "https://raw.githubusercontent.com/pr0gramm-com/pr0gramm-app/refs/heads/updates/beta.json"
+            urls += "https://raw.githubusercontent.com/LageTs/Pr0/beta/update.json"
         } else {
-            urls += "https://app.pr0gramm.com/updates/stable/update.json"
-            urls += "https://raw.githubusercontent.com/pr0gramm-com/pr0gramm-app/refs/heads/updates/stable.json"
+            urls += "https://raw.githubusercontent.com/LageTs/Pr0/master/update.json"
         }
     }
 

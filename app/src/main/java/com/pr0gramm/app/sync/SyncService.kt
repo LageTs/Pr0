@@ -32,7 +32,6 @@ class SyncService(private val userService: UserService,
     }
 
     suspend fun dailySync() {
-        Stats().incrementCounter("jobs.sync-stats")
 
         catchAll {
             UpdateChecker().queryAll().let { response ->
@@ -44,9 +43,6 @@ class SyncService(private val userService: UserService,
     }
 
     suspend fun sync() {
-        Stats().time("jobs.sync.time", measureTimeMillis {
-            Stats().incrementCounter("jobs.sync")
-
             if (!userService.isAuthorized) {
                 logger.info { "Will not sync now - user is not signed in." }
                 return
@@ -67,7 +63,6 @@ class SyncService(private val userService: UserService,
                     syncSeenService()
                 }
             }
-        })
     }
 
     private suspend fun syncCachedUserInfo() {
@@ -132,7 +127,6 @@ class SyncService(private val userService: UserService,
             logger.warn(err) { "Version conflict during update." }
 
         } catch (err: Exception) {
-            Stats().incrementCounter("seen.sync.error")
             throw err
 
         } finally {

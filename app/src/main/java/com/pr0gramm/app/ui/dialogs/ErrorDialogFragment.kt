@@ -5,7 +5,6 @@ import android.os.Bundle
 import androidx.fragment.app.FragmentManager
 import com.pr0gramm.app.Logger
 import com.pr0gramm.app.ui.dialog
-import com.pr0gramm.app.util.AndroidUtility.logToCrashlytics
 import com.pr0gramm.app.util.ErrorFormatting
 import com.pr0gramm.app.util.bundle
 import com.pr0gramm.app.util.weakref
@@ -42,21 +41,14 @@ class ErrorDialogFragment : androidx.fragment.app.DialogFragment() {
             }
 
             try {
-                // do some checking so we don't log this exception twice
-                val sendToCrashlytics = previousError !== error
-
                 previousError = error
 
                 // format and log
                 val formatter = ErrorFormatting.getFormatter(error)
-                if (sendToCrashlytics && formatter.shouldSendToCrashlytics())
-                    logToCrashlytics(error)
 
                 handler?.showErrorDialog(error, formatter)
 
             } catch (thr: Throwable) {
-                // there was an error handling the error. oops.
-                logToCrashlytics(thr)
             }
         }
 

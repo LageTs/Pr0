@@ -6,39 +6,6 @@ import com.timgroup.statsd.NoOpStatsDClient
 import com.timgroup.statsd.NonBlockingStatsDClient
 import com.timgroup.statsd.StatsDClient
 
-/**
- * Statsd client helper
- */
-object Stats {
-    private val logger = Logger("Stats")
-
-    private var CLIENT: StatsDClient? = null
-    private val EMPTY_CLIENT = NoOpStatsDClient()
-
-    operator fun invoke(): StatsDClient = CLIENT ?: EMPTY_CLIENT
-
-    fun init(version: Int) {
-        debugOnly {
-            CLIENT = LoggingStatsDClient()
-            return
-        }
-
-        doInBackground {
-            CLIENT = try {
-                logger.info { "Create a new statsd client" }
-                NonBlockingStatsDClient("app", "app-metrics.pr0gramm.com",
-                        8126, 64, "version:$version", "host:app")
-
-            } catch (err: Exception) {
-                logger.warn("Could not create statsd client, falling back on noop", err)
-                EMPTY_CLIENT
-            }
-
-            this().incrementCounter("app.booted")
-        }
-    }
-}
-
 private class LoggingStatsDClient : StatsDClient by NoOpStatsDClient() {
     private val logger = Logger("LoggingStatsdClient")
 

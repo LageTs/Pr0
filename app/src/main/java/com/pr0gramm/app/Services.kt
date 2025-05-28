@@ -54,7 +54,6 @@ import com.pr0gramm.app.services.VoteService
 import com.pr0gramm.app.services.config.ConfigService
 import com.pr0gramm.app.services.preloading.PreloadManager
 import com.pr0gramm.app.sync.SyncService
-import com.pr0gramm.app.ui.AdService
 import com.pr0gramm.app.ui.FancyExifThumbnailGenerator
 import com.pr0gramm.app.ui.TagSuggestionService
 import com.pr0gramm.app.util.*
@@ -204,10 +203,9 @@ fun appInjector(app: Application) = Module.build {
     bind<SyncSiteSettingsService>() with eagerSingleton { SyncSiteSettingsService(instance()) }
 
     bind<AdminService>() with singleton { AdminService(instance(), instance()) }
-    bind<AdService>() with singleton { AdService(instance(), instance(), instance()) }
     bind<ContactService>() with singleton { ContactService(instance()) }
     bind<DownloadService>() with singleton { DownloadService(instance(), instance(), instance()) }
-    bind<FeedService>() with singleton { FeedServiceImpl(instance(), instance(), instance()) }
+    bind<FeedService>() with singleton { FeedServiceImpl(instance(), instance(), instance(), instance()) }
     bind<GifDrawableLoader>() with singleton { GifDrawableLoader(app.cacheDir, instance()) }
     bind<InfoMessageService>() with singleton { InfoMessageService(instance()) }
     bind<InviteService>() with singleton { InviteService(instance()) }
@@ -540,7 +538,6 @@ private class CustomDNS(appContext: Application) : Dns {
                     .filterNot { it.isMCOrgLocal }
 
                 if (addresses.isNotEmpty()) {
-                    Stats().increment("dns.okay", "resolver:$name")
 
                     logger.debug { "Resolver $name for $hostname returned $addresses" }
                     return addresses

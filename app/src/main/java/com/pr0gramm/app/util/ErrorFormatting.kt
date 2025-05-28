@@ -43,13 +43,6 @@ object ErrorFormatting {
             Logger("ErrorFormatting").warn("Formatting error:", thr)
             return message(thr, context)
         }
-
-        /**
-         * Returns true, if this exception should be logged
-         */
-        fun shouldSendToCrashlytics(): Boolean {
-            return report
-        }
     }
 
     private fun guessMessage(err: Throwable, context: Context): String {
@@ -108,8 +101,7 @@ object ErrorFormatting {
 
             formatters.add(Formatter(
                     errorCheck = { it.hasCauseOfType<T>() && actual.handles(it.getCauseOfType<T>()!!) },
-                    message = { err, ctx -> actual.getMessage(ctx, err.getCauseOfType<T>()!!) },
-                    report = actual.shouldSendToCrashlytics()
+                    message = { err, ctx -> actual.getMessage(ctx, err.getCauseOfType<T>()!!) }
             ))
         }
     }

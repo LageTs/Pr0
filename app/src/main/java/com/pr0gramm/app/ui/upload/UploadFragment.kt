@@ -333,8 +333,6 @@ class UploadFragment : BaseFragment("UploadFragment", R.layout.fragment_upload) 
             }
 
             err is UploadViewModel.CopyMediaException -> {
-                AndroidUtility.logToCrashlytics(err, force = true)
-
                 showDialog(this) {
                     content(R.string.error_check_file_permission)
                     positive(android.R.string.ok) { activity?.finish() }
@@ -343,8 +341,6 @@ class UploadFragment : BaseFragment("UploadFragment", R.layout.fragment_upload) 
             }
 
             else -> {
-                AndroidUtility.logToCrashlytics(err)
-
                 val str = ErrorFormatting.getFormatter(err).getMessage(requireActivity(), err)
                 ErrorDialogFragment.showErrorString(parentFragmentManager, str)
             }

@@ -8,7 +8,6 @@ import com.pr0gramm.app.R
 import com.pr0gramm.app.databinding.ActivityInboxBinding
 import com.pr0gramm.app.services.InboxService
 import com.pr0gramm.app.services.ThemeHelper
-import com.pr0gramm.app.services.Track
 import com.pr0gramm.app.services.UserService
 import com.pr0gramm.app.services.config.ConfigService
 import com.pr0gramm.app.ui.base.BaseAppCompatActivity
@@ -127,11 +126,6 @@ class InboxActivity : BaseAppCompatActivity("InboxActivity") {
             handleNewIntent(intent)
         }
 
-        // track if we've clicked the notification!
-        if (intent.getBooleanExtra(EXTRA_FROM_NOTIFICATION, false)) {
-            Track.inboxNotificationClosed("clicked")
-        }
-
         intent.getStringExtra(EXTRA_CONVERSATION_NAME)?.let { name ->
             ConversationActivity.start(this, name, skipInbox = true)
         }
@@ -181,7 +175,6 @@ class InboxActivity : BaseAppCompatActivity("InboxActivity") {
 
     override fun onStart() {
         super.onStart()
-        Track.inboxActivity()
     }
 
     override fun onNewIntent(intent: Intent) {

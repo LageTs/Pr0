@@ -92,8 +92,6 @@ private val DefaultCoroutineExceptionHandler = CoroutineExceptionHandler { _, th
 
     if (BuildConfig.DEBUG) {
         ErrorDialogFragment.handleOnError(throwable)
-    } else {
-        AndroidUtility.logToCrashlytics(throwable)
     }
 }
 

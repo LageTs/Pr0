@@ -216,8 +216,6 @@ class NotificationService(
 
             inboxNotificationCache.add(NotificationId(notifyConfig.type.channel, notifyConfig.notificationId))
         }
-
-        Track.inboxNotificationShown()
     }
 
     fun showSendSuccessfulNotification(receiver: String, isMessage: Boolean, notificationId: Int) {

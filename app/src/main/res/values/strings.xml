@@ -622,12 +622,15 @@
     <string name="pref_video_quality_values_title">Video quality</string>
     <string name="action_feed_type_junk">Junk</string>
     <string name="pref_show_category_junk_title">Category \'Junk\'</string>
-
+    <string name="pref_video_controls_grayed_summary">Add gray background to video controls.</string>
+    <string name="pref_video_controls_grayed_title">Controls background</string>
     <string name="pref_pseudo_language_title">Language</string>
     <string name="pref_pseudo_language_summary">Change the app language independent of your system language</string>
     <string name="language_picker_title">Choose language</string>
     <string name="language_picker_subtitle">Please choose one of the available languages.</string>
     <string name="language_picker_dismiss">Dismiss</string>
     <string name="language_picker_confirm">Confirm</string>
+    <string name="pref_remove_seen_items_summary">Remove seen images from the feed. Images can still be opened by link but not found be search anymore.</string>
+    <string name="remove_seen_items_title">Remove seen images</string>
 </resources>
 

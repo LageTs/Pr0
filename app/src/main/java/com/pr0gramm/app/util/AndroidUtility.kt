@@ -31,7 +31,6 @@ import androidx.core.graphics.drawable.DrawableCompat
 import androidx.core.net.ConnectivityManagerCompat
 import androidx.core.text.inSpans
 import androidx.core.view.postDelayed
-import com.google.firebase.crashlytics.FirebaseCrashlytics
 import com.pr0gramm.app.BuildConfig
 import com.pr0gramm.app.Logger
 import com.pr0gramm.app.R
@@ -109,58 +108,6 @@ object AndroidUtility {
         }
 
         return result
-    }
-
-    fun logToCrashlytics(error: Throwable?, force: Boolean = false) {
-        val causalChain = error?.causalChain ?: return
-
-        if (causalChain.containsType<CancellationException>()) {
-            return
-        }
-
-        if (!force) {
-            if (causalChain.containsType<PermissionHelperDelegate.PermissionNotGranted>()) {
-                return
-            }
-
-            if (causalChain.containsType<IOException>() || causalChain.containsType<HttpException>()) {
-                logger.warn(error) { "Ignoring network exception" }
-                return
-            }
-
-            if (causalChain.containsType<SQLiteFullException>()) {
-                logger.warn { "Database is full: $error" }
-                return
-            }
-        }
-
-        try {
-            val trace = StringWriter().also { w -> error.printStackTrace(PrintWriter(w)) }.toString()
-            if (EXCEPTION_BLACKLIST.any { word -> word in trace }) {
-                logger.warn("Ignoring exception", error)
-                return
-            }
-
-            val errorStr = error.toString()
-            if ("connect timed out" in errorStr) {
-                return
-            }
-
-            // try to rate limit exceptions.
-            val key = System.identityHashCode(error)
-            if (cache.get(key) != null) {
-                return
-            } else {
-                cache.put(key, Unit)
-            }
-
-            ignoreAllExceptions {
-                FirebaseCrashlytics.getInstance().recordException(error)
-            }
-
-        } catch (err: Throwable) {
-            logger.warn(err) { "Could not send error $error to crash tool" }
-        }
     }
 
     fun isOnMobile(context: Context?): Boolean {
@@ -320,8 +267,6 @@ inline fun <T> doInBackground(crossinline action: suspend () -> T): Job {
         try {
             action()
         } catch (thr: Throwable) {
-            // log it
-            AndroidUtility.logToCrashlytics(BackgroundThreadException(thr))
         }
     }
 }

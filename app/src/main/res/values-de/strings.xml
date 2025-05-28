@@ -603,6 +603,10 @@
     <string name="pref_feed_hide_junk_in_new_title">Mülltrennung</string>
     <string name="pref_feed_hide_junk_in_new_summary">Deaktiviere diese Option um \'Müll\' auch in \'Neu\' anzuzeigen.</string>
 
+    <string name="pref_video_controls_grayed_summary">Leicht grauen Hintergrund hinter die Videobedienelemente legen.</string>
+    <string name="pref_video_controls_grayed_title">Videobedinelemente hervorheben</string>
+    <string name="pref_remove_seen_items_summary">Entferne gesehene Post aus dem Feed. Posts sind weiterhin per Link aufrufbar, nicht jedoch über die Suche. ACHTUNG: instabil!</string>
+    <string name="remove_seen_items_title">Gesehene Posts ausblenden</string>
     <string name="pref_pseudo_language_title">Sprache</string>
     <string name="pref_pseudo_language_summary">Ändere die Sprache der App unabhängig deiner Systemsprache</string>
     <string name="language_picker_title">Sprache wählen</string>

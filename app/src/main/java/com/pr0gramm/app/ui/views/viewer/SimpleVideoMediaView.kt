@@ -43,6 +43,7 @@ import androidx.media3.extractor.text.webvtt.WebvttParser
 import com.pr0gramm.app.Duration
 import com.pr0gramm.app.Logger
 import com.pr0gramm.app.R
+import com.pr0gramm.app.Settings.videoControlsGrayed
 import com.pr0gramm.app.api.pr0gramm.Api
 import com.pr0gramm.app.databinding.PlayerDelayedOverlayBinding
 import com.pr0gramm.app.databinding.PlayerSubtitleContainerBinding
@@ -178,11 +179,17 @@ class SimpleVideoMediaView(config: Config) :
     private fun toggleSubtitles(toggleView: ImageView, forceOn: Boolean = false) {
         if (forceOn || !subtitleContainer.isVisible) {
             subtitleContainer.isVisible = true
-            toggleView.setImageResource(R.drawable.ic_subtitles_on, ThemeHelper.accentColor)
+            if (videoControlsGrayed)
+                toggleView.setImageResource(R.drawable.ic_subtitles_on_grayed, ThemeHelper.accentColor)
+            else
+                toggleView.setImageResource(R.drawable.ic_subtitles_on, ThemeHelper.accentColor)
             preferences.edit { putBoolean("subtitles", true) }
         } else {
             subtitleContainer.isVisible = false
-            toggleView.setImageResource(R.drawable.ic_subtitles_off)
+            if (videoControlsGrayed)
+                toggleView.setImageResource(R.drawable.ic_subtitles_off_grayed)
+            else
+                toggleView.setImageResource(R.drawable.ic_subtitles_off)
             preferences.edit { putBoolean("subtitles", false) }
         }
     }
@@ -190,7 +197,17 @@ class SimpleVideoMediaView(config: Config) :
     private fun updatePauseViewIcon() {
         val exo = this.exo ?: return
 
-        val icon = if (exo.playWhenReady) R.drawable.ic_video_pause else R.drawable.ic_video_play
+        val icon = if (exo.playWhenReady) {
+            if (videoControlsGrayed)
+                R.drawable.ic_video_pause_grayed
+            else
+                R.drawable.ic_video_pause
+        } else {
+            if (videoControlsGrayed)
+                R.drawable.ic_video_play_grayed
+            else
+                R.drawable.ic_video_play
+        }
 
         val pauseView = controlsView.find<ImageView>(R.id.pause)
         if (!exo.playWhenReady) {

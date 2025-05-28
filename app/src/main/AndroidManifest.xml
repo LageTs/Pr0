@@ -51,7 +51,7 @@
             android:required="false" />
 
         <meta-data
-            android:name="com.google.android.gms.ads.APPLICATION_ID"
+            android:name="pr0gramm"
             android:value="ca-app-pub-2308657767126505~4138045673" />
 
         <!-- activate multi window for samsung -->
@@ -92,12 +92,6 @@
                 android:name="androidx.work.WorkManagerInitializer"
                 tools:node="remove" />
         </provider>
-
-        <!-- disable firebase auto initializer-->
-        <provider
-            android:name="com.google.firebase.provider.FirebaseInitProvider"
-            android:authorities="${applicationId}.firebaseinitprovider"
-            tools:node="remove" />
 
         <!-- Add support for per-app language below Android 12 (API 32) -->
         <!-- This can lead to violations in StrictMode (see docs) -->

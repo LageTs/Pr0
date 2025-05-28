@@ -185,10 +185,6 @@ class PostViewModel(
                 )
             }
         } catch (err: Exception) {
-            if (err.rootCause !is IOException && err !is CancellationException) {
-                AndroidUtility.logToCrashlytics(err)
-            }
-
             // remove list of visible comments
             commentTreeController.clearComments()
 

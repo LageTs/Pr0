@@ -80,7 +80,6 @@ class UserService(
         logger.debug { "LoginState is now: $state" }
 
         // update the current 'auth' state for tracking
-        Track.updateUserState(Track.AuthState(state.authorized, state.premium))
 
         this.loginStateSubject.value = state
     }
@@ -451,7 +450,7 @@ class UserService(
         get() = loginState.authorized && cookieJar.parsedCookie?.id?.isNotBlank() == true
 
     val userIsPremium: Boolean
-        get() = isAuthorized && loginState.premium
+        get() = isAuthorized
 
     val userIsAdmin: Boolean
         get() = isAuthorized && loginState.admin
@@ -546,7 +545,7 @@ private fun createLoginStateFromInfo(user: Api.Info.User, cookie: LoginCookie?, 
         name = user.name,
         mark = user.mark,
         score = user.score,
-        premium = cookie?.paid == true,
+        premium = true,
         admin = cookie?.admin == true,
         verified = cookie?.verified == true,
         uniqueToken = token

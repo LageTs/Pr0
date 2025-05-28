@@ -84,6 +84,10 @@ object Settings : SharedPreferences.OnSharedPreferenceChangeListener {
         get() = preferences.getBoolean("pref_mark_items_as_seen", false)
         set(value) = edit { putBoolean("pref_mark_items_as_seen", value) }
 
+    var removeSeenItems: Boolean
+        get() = preferences.getBoolean("pref_remove_seen_items", false)
+        set(value) = edit { putBoolean("pref_remove_seen_items", value) }
+
     val fancyScrollVertical: Boolean
         get() = preferences.getBoolean("pref_fancy_scroll_vertical", true)
 
@@ -208,6 +212,10 @@ object Settings : SharedPreferences.OnSharedPreferenceChangeListener {
 
     val videoQuality: VideoQuality
         get() = preferences.getEnumValue("pref_video_quality_list", VideoQuality.Adaptive)
+
+    var videoControlsGrayed: Boolean
+        get() = preferences.getBoolean("pref_video_controls_grayed", false)
+        set(value) = edit { putBoolean("pref_video_controls_grayed", value) }
 
     val privateInput: Boolean
         get() = preferences.getBoolean("pref_private_input", false)

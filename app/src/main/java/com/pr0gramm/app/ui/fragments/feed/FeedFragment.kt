@@ -43,7 +43,6 @@ import com.pr0gramm.app.services.RecentSearchesServices
 import com.pr0gramm.app.services.ShareService
 import com.pr0gramm.app.services.SingleShotService
 import com.pr0gramm.app.services.ThemeHelper
-import com.pr0gramm.app.services.Track
 import com.pr0gramm.app.services.UserService
 import com.pr0gramm.app.services.preloading.PreloadService
 import com.pr0gramm.app.time
@@ -53,12 +52,12 @@ import com.pr0gramm.app.ui.DetectTapTouchListener
 import com.pr0gramm.app.ui.FancyExifThumbnailGenerator
 import com.pr0gramm.app.ui.FeedFilterFormatter
 import com.pr0gramm.app.ui.FilterFragment
-import com.pr0gramm.app.ui.InterstitialAdler
 import com.pr0gramm.app.ui.LoginActivity
 import com.pr0gramm.app.ui.MainActionHandler
 import com.pr0gramm.app.ui.MainActivity
 import com.pr0gramm.app.ui.PreviewInfo
 import com.pr0gramm.app.ui.RecyclerItemClickListener
+import com.pr0gramm.app.ui.RecyclerViewPoolProvider
 import com.pr0gramm.app.ui.ScrollHideToolbarListener
 import com.pr0gramm.app.ui.ScrollHideToolbarListener.ToolbarActivity
 import com.pr0gramm.app.ui.TitleFragment
@@ -131,7 +130,6 @@ class FeedFragment : BaseFragment("FeedFragment", R.layout.fragment_feed), Filte
                 seenService = instance(),
                 inMemoryCacheService = instance(),
                 preloadManager = instance(),
-                adService = instance(),
                 itemQueries = instance<AppDB>().feedItemInfoQueries,
         )
     }
@@ -155,6 +153,7 @@ class FeedFragment : BaseFragment("FeedFragment", R.layout.fragment_feed), Filte
     private val shareService: ShareService by instance()
 
     private val views by bindViews(FragmentFeedBinding::bind)
+    private val recyclerViewPoolProvider: RecyclerViewPoolProvider by instance()
 
     private val isNormalMode: Boolean by fragmentArgumentWithDefault(true, ARG_NORMAL_MODE)
 
@@ -164,8 +163,6 @@ class FeedFragment : BaseFragment("FeedFragment", R.layout.fragment_feed), Filte
     private var autoScrollRef: ScrollRef? = null
 
     private var lastCheckForNewItemsTime = Instant(0)
-
-    private lateinit var interstitialAdler: InterstitialAdler
 
     private lateinit var feedAdapter: FeedAdapter
 
@@ -191,7 +188,6 @@ class FeedFragment : BaseFragment("FeedFragment", R.layout.fragment_feed), Filte
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        interstitialAdler = InterstitialAdler(requireActivity())
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
@@ -201,7 +197,7 @@ class FeedFragment : BaseFragment("FeedFragment", R.layout.fragment_feed), Filte
 
         val abHeight = AndroidUtility.getActionBarContentOffset(activity)
 
-        feedAdapter = FeedAdapter((activity as MainActivity).adViewAdapter)
+        feedAdapter = FeedAdapter()
 
         if (!feedStateModel.feedState.value.ready) {
             feedAdapter.stateRestorationPolicy = StateRestorationPolicy.PREVENT
@@ -228,7 +224,7 @@ class FeedFragment : BaseFragment("FeedFragment", R.layout.fragment_feed), Filte
             spanSizeLookup = feedAdapter.SpanSizeLookup(spanCount)
         }
 
-        activity.configureRecyclerView("Feed", views.recyclerView)
+        recyclerViewPoolProvider.configureRecyclerView("Feed", views.recyclerView)
 
         views.recyclerView.addOnScrollListener(onScrollListener)
 
@@ -599,8 +595,6 @@ class FeedFragment : BaseFragment("FeedFragment", R.layout.fragment_feed), Filte
     override fun onResume() {
         super.onResume()
 
-        Track.openFeed(currentFilter)
-
         // check if we should show the pin button or not.
         if (Settings.showPinButton) {
             val bookmarkable = bookmarkService.isBookmarkable(currentFilter)
@@ -646,7 +640,12 @@ class FeedFragment : BaseFragment("FeedFragment", R.layout.fragment_feed), Filte
             autoScrollRef = ref.copy(feed = null)
 
             // apply the updated feed reference
-            feedStateModel.replaceCurrentFeed(feed.mergeIfPossible(ref.feed) ?: ref.feed)
+            feedStateModel.replaceCurrentFeed(
+                feed.mergeIfPossible(
+                    ref.feed,
+                    feedStateModel.seenService
+                ) ?: ref.feed
+            )
         }
     }
 
@@ -973,8 +972,6 @@ class FeedFragment : BaseFragment("FeedFragment", R.layout.fragment_feed), Filte
         // start preloading now
         PreloadService.preload(activity, feed, allowOnMobile)
 
-        Track.preloadCurrentFeed(feed.size)
-
         singleShotService.doOnce("preload_info_hint") {
             showDialog(this) {
                 content(R.string.preload_info_hint)
@@ -1087,10 +1084,6 @@ class FeedFragment : BaseFragment("FeedFragment", R.layout.fragment_feed), Filte
                 if (holder.item.placeholder) {
                     logger.warn { "User clicked on a placeholder: ${holder.item.id}" }
                     return@let
-                }
-
-                interstitialAdler.runWithAd {
-                    onItemClicked(holder.item, preview = holder.imageView)
                 }
             }
         }

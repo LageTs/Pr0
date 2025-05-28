@@ -116,7 +116,6 @@ class ChangeLogDialog : ViewBindingDialogFragment<ChangelogBinding>("ChangeLogDi
                     return MoshiInstance.adapter<List<ChangeGroup>>().nonNull().fromJson(source)!!
                 }
             } catch (error: IOException) {
-                AndroidUtility.logToCrashlytics(error)
                 return emptyList()
             }
         }

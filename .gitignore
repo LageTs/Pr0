@@ -14,6 +14,7 @@ gradle-app.setting
 # Built application files
 *.apk
 *.ap_
+!release.apk
 
 # Files for the Dalvik VM
 *.dex

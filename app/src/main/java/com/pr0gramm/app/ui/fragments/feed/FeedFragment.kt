@@ -54,10 +54,8 @@ import com.pr0gramm.app.ui.FeedFilterFormatter
 import com.pr0gramm.app.ui.FilterFragment
 import com.pr0gramm.app.ui.LoginActivity
 import com.pr0gramm.app.ui.MainActionHandler
-import com.pr0gramm.app.ui.MainActivity
 import com.pr0gramm.app.ui.PreviewInfo
 import com.pr0gramm.app.ui.RecyclerItemClickListener
-import com.pr0gramm.app.ui.RecyclerViewPoolProvider
 import com.pr0gramm.app.ui.ScrollHideToolbarListener
 import com.pr0gramm.app.ui.ScrollHideToolbarListener.ToolbarActivity
 import com.pr0gramm.app.ui.TitleFragment
@@ -73,7 +71,6 @@ import com.pr0gramm.app.ui.base.launchUntilViewDestroy
 import com.pr0gramm.app.ui.base.launchWhenCreated
 import com.pr0gramm.app.ui.base.withErrorDialog
 import com.pr0gramm.app.ui.configureNewStyle
-import com.pr0gramm.app.ui.configureRecyclerView
 import com.pr0gramm.app.ui.dialogs.PopupPlayer
 import com.pr0gramm.app.ui.fragments.CommentRef
 import com.pr0gramm.app.ui.fragments.ItemUserAdminDialog
@@ -153,7 +150,6 @@ class FeedFragment : BaseFragment("FeedFragment", R.layout.fragment_feed), Filte
     private val shareService: ShareService by instance()
 
     private val views by bindViews(FragmentFeedBinding::bind)
-    private val recyclerViewPoolProvider: RecyclerViewPoolProvider by instance()
 
     private val isNormalMode: Boolean by fragmentArgumentWithDefault(true, ARG_NORMAL_MODE)
 
@@ -223,8 +219,6 @@ class FeedFragment : BaseFragment("FeedFragment", R.layout.fragment_feed), Filte
         views.recyclerView.layoutManager = InternalGridLayoutManager(activity, spanCount).apply {
             spanSizeLookup = feedAdapter.SpanSizeLookup(spanCount)
         }
-
-        recyclerViewPoolProvider.configureRecyclerView("Feed", views.recyclerView)
 
         views.recyclerView.addOnScrollListener(onScrollListener)
 

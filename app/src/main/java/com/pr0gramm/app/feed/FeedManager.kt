@@ -1,10 +1,7 @@
 package com.pr0gramm.app.feed
 
-import com.pr0gramm.app.Duration
 import com.pr0gramm.app.Logger
-import com.pr0gramm.app.Settings.removeSeenItems
 import com.pr0gramm.app.api.pr0gramm.Api
-import com.pr0gramm.app.util.delay
 import com.pr0gramm.app.util.trace
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
@@ -14,17 +11,9 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.launch
 
-class FeedManager(
-    private val scope: CoroutineScope,
-    private val feedService: FeedService,
-    private var feed: Feed
-) {
-    enum class Callee {
-        NEXT, PREVIOUS, RESTART
-    }
-
+class FeedManager(private val scope: CoroutineScope, private val feedService: FeedService, private var feed: Feed) {
     private val logger = Logger("FeedService")
-    private var overwriteLoading = false
+
     private val subject = MutableSharedFlow<Update>(extraBufferCapacity = 8)
     private var job: Job? = null
 
@@ -47,8 +36,7 @@ class FeedManager(
      */
     fun reset(feed: Feed = this.feed.copy(items = listOf(), isAtStart = false, isAtEnd = false)) {
         trace { "reset(${feed.filter})" }
-        this.feed = feed
-        publish(Update.NewFeed(feed, false))
+        publish(feed, remote = false)
     }
 
     /**
@@ -57,10 +45,10 @@ class FeedManager(
      */
     fun restart(around: Long? = null) {
         trace { "reload(${feed.filter})" }
-        load({
+        load {
             publish(Update.LoadingStarted(LoadingSpace.NEXT))
             feedService.load(feedQuery().copy(around = around))
-        }, Callee.RESTART)
+        }
     }
 
     /**
@@ -68,14 +56,13 @@ class FeedManager(
      */
     fun next() {
         val oldest = feed.oldestNonPlaceholderItem
-        if (feed.isAtEnd || isLoading && !overwriteLoading || oldest == null)
+        if (feed.isAtEnd || isLoading || oldest == null)
             return
 
-        load({
-            if (!overwriteLoading)
-                publish(Update.LoadingStarted(LoadingSpace.NEXT))
+        load {
+            publish(Update.LoadingStarted(LoadingSpace.NEXT))
             feedService.load(feedQuery().copy(older = oldest.id(feedType)))
-        }, Callee.NEXT)
+        }
     }
 
     /**
@@ -83,14 +70,13 @@ class FeedManager(
      */
     fun previous() {
         val newest = feed.newestNonPlaceholderItem
-        if (feed.isAtStart || isLoading && !overwriteLoading || newest == null)
+        if (feed.isAtStart || isLoading || newest == null)
             return
 
-        load({
-            if (!overwriteLoading)
-                publish(Update.LoadingStarted(LoadingSpace.PREV))
+        load {
+            publish(Update.LoadingStarted(LoadingSpace.PREV))
             feedService.load(feedQuery().copy(newer = newest.id(feedType)))
-        }, Callee.PREVIOUS)
+        }
     }
 
     fun stop() {
@@ -99,7 +85,7 @@ class FeedManager(
         job?.cancel()
     }
 
-    private fun load(block: suspend () -> Api.Feed, callee: Callee) {
+    private fun load(block: suspend () -> Api.Feed) {
         stop()
 
         logger.debug { "Start new load request now." }
@@ -114,7 +100,7 @@ class FeedManager(
 
                 // loading finished
                 publish(Update.LoadingStopped)
-                handleFeedUpdate(update, callee)
+                handleFeedUpdate(update)
 
             } catch (err: Throwable) {
                 publish(Update.LoadingStopped)
@@ -123,7 +109,7 @@ class FeedManager(
         }
     }
 
-    private fun handleFeedUpdate(update: Api.Feed, callee: Callee) {
+    private fun handleFeedUpdate(update: Api.Feed) {
         // check for invalid content type.
         update.error?.let { error ->
             publishError(when (error) {
@@ -139,29 +125,16 @@ class FeedManager(
             return
         }
 
-        val merged = feed.mergeWith(update, feedService.getSeenService())
-        publish(merged, remote = true, callee)
+        val merged = feed.mergeWith(update)
+        publish(merged, remote = true)
     }
 
     /**
      * Update and publish a new feed.
      */
-    private fun publish(newFeed: Feed, remote: Boolean, callee: Callee) {
-        val sizeBefore: Int = feed.size
+    private fun publish(newFeed: Feed, remote: Boolean) {
         feed = newFeed
-        if (removeSeenItems && feed.feedType == FeedType.RANDOM && (feed.size < 75 || feed.size - sizeBefore < 50)) {
-            overwriteLoading = true
-            Thread.sleep(1500)
-            when (callee) {
-                Callee.RESTART -> next()
-                Callee.NEXT -> next()
-                Callee.PREVIOUS -> previous()
-            }
-        } else {
-            if (removeSeenItems)
-                overwriteLoading = false
-            publish(Update.NewFeed(newFeed, remote))
-        }
+        publish(Update.NewFeed(newFeed, remote))
     }
 
     private fun publishError(err: Throwable) {

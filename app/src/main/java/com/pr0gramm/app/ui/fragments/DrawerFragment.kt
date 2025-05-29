@@ -511,7 +511,7 @@ private class TitleDelegateAdapter(private val callbacks: DrawerFragment.Callbac
 
             holder.subtitle.isVisible = false
         } else {
-            holder.title.setText(R.string.pr0gramm)
+            holder.title.text = value.name
             holder.title.setOnClickListener { callbacks.onUsernameClicked() }
 
             holder.subtitle.isVisible = true

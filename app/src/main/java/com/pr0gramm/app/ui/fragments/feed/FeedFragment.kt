@@ -634,12 +634,7 @@ class FeedFragment : BaseFragment("FeedFragment", R.layout.fragment_feed), Filte
             autoScrollRef = ref.copy(feed = null)
 
             // apply the updated feed reference
-            feedStateModel.replaceCurrentFeed(
-                feed.mergeIfPossible(
-                    ref.feed,
-                    feedStateModel.seenService
-                ) ?: ref.feed
-            )
+            feedStateModel.replaceCurrentFeed(feed.mergeIfPossible(ref.feed) ?: ref.feed)
         }
     }
 

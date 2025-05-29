@@ -182,10 +182,6 @@ class FeedFragment : BaseFragment("FeedFragment", R.layout.fragment_feed), Filte
         }
     }
 
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-    }
-
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
@@ -1074,6 +1070,7 @@ class FeedFragment : BaseFragment("FeedFragment", R.layout.fragment_feed), Filte
                     logger.warn { "User clicked on a placeholder: ${holder.item.id}" }
                     return@let
                 }
+                onItemClicked(holder.item, preview = holder.imageView)
             }
         }
 

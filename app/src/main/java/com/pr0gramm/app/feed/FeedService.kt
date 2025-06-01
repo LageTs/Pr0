@@ -6,7 +6,6 @@ import com.pr0gramm.app.Settings
 import com.pr0gramm.app.TimeFactory
 import com.pr0gramm.app.api.pr0gramm.Api
 import com.pr0gramm.app.db.FeedItemInfoQueries
-import com.pr0gramm.app.services.SeenService
 import com.pr0gramm.app.services.UserService
 import com.pr0gramm.app.time
 import com.pr0gramm.app.ui.base.AsyncScope
@@ -48,15 +47,12 @@ interface FeedService {
         val newer: Long? = null, val older: Long? = null, val around: Long? = null
     )
 
-    fun getSeenService(): SeenService
-
 }
 
 class FeedServiceImpl(
     private val api: Api,
     private val userService: UserService,
-    private val itemQueries: FeedItemInfoQueries,
-    private val seenService: SeenService
+    private val itemQueries: FeedItemInfoQueries
 ) : FeedService {
     private val logger = Logger("FeedService")
 
@@ -245,9 +241,5 @@ class FeedServiceImpl(
                 }
             }
         }
-    }
-
-    override fun getSeenService(): SeenService {
-        return seenService
     }
 }

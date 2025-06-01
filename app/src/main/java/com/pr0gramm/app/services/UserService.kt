@@ -450,7 +450,7 @@ class UserService(
         get() = loginState.authorized && cookieJar.parsedCookie?.id?.isNotBlank() == true
 
     val userIsPremium: Boolean
-        get() = isAuthorized
+        get() = isAuthorized && loginState.premium
 
     val userIsAdmin: Boolean
         get() = isAuthorized && loginState.admin
@@ -545,7 +545,7 @@ private fun createLoginStateFromInfo(user: Api.Info.User, cookie: LoginCookie?, 
         name = user.name,
         mark = user.mark,
         score = user.score,
-        premium = true,
+        premium = cookie?.paid == true,
         admin = cookie?.admin == true,
         verified = cookie?.verified == true,
         uniqueToken = token
